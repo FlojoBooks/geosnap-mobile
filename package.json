@@ -14,5 +14,10 @@
     "@capacitor/core": "^6.0.0",
     "@capacitor/filesystem": "^6.0.0",
     "@capacitor/share": "^6.0.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "localtunnel": "^2.0.2",
+    "qrcode-terminal": "^0.12.0"
   }
 }

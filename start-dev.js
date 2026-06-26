@@ -17,7 +17,7 @@ console.log('=== Geosnap Mobile Ontwikkelserver ===');
 console.log('1. Start lokale webserver...');
 
 // Start http-server on port 8080
-const server = spawn('npx', ['http-server', 'public', '-p', '8080'], { shell: true });
+const server = spawn('npx', ['--yes', 'http-server', 'public', '-p', '8080'], { shell: true });
 
 let serverReady = false;
 
@@ -32,7 +32,7 @@ server.stdout.on('data', (data) => {
     console.log('2. Beveiligde HTTPS tunnel opstarten via localtunnel...');
     
     // Start localtunnel to get secure URL (needed for camera/GPS on mobile)
-    const lt = spawn('npx', ['localtunnel', '--port', '8080'], { shell: true });
+    const lt = spawn('npx', ['--yes', 'localtunnel', '--port', '8080'], { shell: true });
     
     let ltReady = false;
     
@@ -45,7 +45,7 @@ server.stdout.on('data', (data) => {
         console.log('\n3. QR-Code genereren...');
         
         // Generate QR code for the secure HTTPS URL
-        exec(`npx qrcode-terminal "${secureUrl}"`, (qrErr, qrStdout) => {
+        exec(`npx -y qrcode-terminal "${secureUrl}"`, (qrErr, qrStdout) => {
           if (!qrErr) {
             console.log('\nScan deze QR-code met je telefoon (camera app) om direct te testen:');
             console.log(qrStdout);
@@ -81,7 +81,7 @@ server.stdout.on('data', (data) => {
 
 function generateLocalIpQr(localUrl) {
   console.log('\n3. QR-Code genereren voor lokaal netwerk...');
-  exec(`npx qrcode-terminal "${localUrl}"`, (qrErr, qrStdout) => {
+  exec(`npx -y qrcode-terminal "${localUrl}"`, (qrErr, qrStdout) => {
     if (!qrErr) {
       console.log('\nScan deze QR-code met je telefoon om te testen (Let op: camera/GPS vereist mogelijk HTTPS):');
       console.log(qrStdout);
