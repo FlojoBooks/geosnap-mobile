@@ -1,0 +1,17 @@
+{
+	"appId": "nl.alphatron.geosnapmobile",
+	"appName": "Alphatron GeoSnap",
+	"webDir": "public",
+	"server": {
+		"androidScheme": "https",
+		"cleartext": true
+	},
+	"android": {
+		"allowMixedContent": true
+	},
+	"plugins": {
+		"CapacitorHttp": {
+			"enabled": true
+		}
+	}
+}

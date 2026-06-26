@@ -1,0 +1,19 @@
+# Dependency directories
+node_modules/
+
+# Local/extracted files
+extracted/
+*.apk
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Android build outputs and IDE files
+.gradle/
+build/
+captures/
+.idea/
+*.iml
+local.properties

@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#080d1a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Alphatron GeoSnap Mobile</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Alphatron GeoSnap Mobile</p>
+          <h1>Camera schouw</h1>
+          <p class="app-version" id="app-version">v0.2.15</p>
+        </div>
+        <div class="statusline">
+          <span id="server-status">Server controleren</span>
+          <span id="gps-status">GPS zoeken</span>
+          <button id="btn-menu" class="menu-btn" type="button" aria-label="Menu">&#9776;</button>
+        </div>
+      </header>
+
+      <section class="capture-grid">
+        <div class="stage">
+          <div class="stage-toolbar">
+            <button id="btn-phone" class="seg active" type="button">Locatie</button>
+            <button id="btn-unv" class="seg" type="button">Beeld</button>
+            <span id="live-badge" class="live-badge">stand-by</span>
+          </div>
+
+          <div class="viewer" id="viewer">
+            <video id="phone-video" autoplay playsinline muted></video>
+            <img id="unv-image" alt="UNV live beeld" />
+            <canvas id="unv-canvas"></canvas>
+            <canvas id="capture-canvas"></canvas>
+            <input id="mobile-photo-input" class="mobile-photo-input" type="file" accept="image/*" capture="environment" />
+            <div id="capture-status" class="capture-status">
+              <div class="capture-status-card">
+                <div class="capture-spinner"></div>
+                <strong id="capture-status-title">Foto wordt gemaakt...</strong>
+                <span id="capture-status-text">Niet nog een keer drukken</span>
+              </div>
+            </div>
+            <div id="viewer-empty" class="viewer-empty">
+              <strong>Geen beeld</strong>
+              <span>Kies Locatie of Beeld</span>
+            </div>
+          </div>
+
+          <div class="capture-actions">
+            <button id="btn-refresh" class="secondary" type="button">Ververs beeld</button>
+            <button id="btn-capture" class="shutter" type="button" aria-label="Foto vastleggen"></button>
+            <button id="btn-reference-photo" class="secondary" type="button">Referentiefoto</button>
+            <button id="btn-central-equipment" class="secondary" type="button">Centrale apparatuur</button>
+          </div>
+          <div class="device-row">
+            <select id="phone-device"></select>
+            <button id="btn-reload-devices" class="secondary" type="button">Zoek camera's</button>
+          </div>
+        </div>
+
+        <aside class="side">
+          <section class="panel">
+            <div class="panel-title">Actieve sessie</div>
+            <p id="active-session" class="muted">Geen sessie actief</p>
+            <button id="btn-export-session" class="secondary wide" type="button">Exporteer sessie</button>
+          </section>
+
+          <section class="panel compact">
+            <div class="panel-title">Foto info</div>
+            <div class="field-row">
+              <label>CAM <input id="camera-number" type="number" min="1" value="1" /></label>
+              <label>Verdieping <input id="floor" value="BG" /></label>
+            </div>
+            <p id="workflow-status" class="muted">Volgende stap: CAM-001 Beeld</p>
+            <div class="gps-grid">
+              <span>Lat <b id="gps-lat">-</b></span>
+              <span>Lon <b id="gps-lng">-</b></span>
+              <span>Nauwk. <b id="gps-acc">-</b></span>
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section class="map-band">
+        <div class="map-head">
+          <div>
+            <div class="panel-title">Kaart & camera cones</div>
+            <p id="map-status" class="muted">Open een sessie met beeldfoto's om camera's te plaatsen.</p>
+          </div>
+          <button id="btn-refresh-map" class="secondary" type="button">Kaart verversen</button>
+          <button id="btn-close-cone-overlay" class="secondary cone-overlay-close" type="button">Later</button>
+        </div>
+        <div class="map-layout">
+          <div id="camera-map" class="camera-map"></div>
+          <div class="panel map-controls">
+            <div class="panel-title">Geselecteerde camera</div>
+            <div class="cone-meta">
+              <p id="selected-camera" class="muted">Geen camera geselecteerd</p>
+              <p id="cone-prompt" class="cone-prompt">Maak een beeldfoto om de cone voor die camera te plaatsen.</p>
+            </div>
+            <div class="cone-field">
+              <label>Richting <span id="heading-value">0 graden</span></label>
+              <input id="heading-slider" type="range" min="0" max="359" value="0" />
+            </div>
+            <div class="cone-field">
+              <label>Beeldhoek <span id="fov-value">90 graden</span></label>
+              <input id="fov-slider" type="range" min="20" max="140" value="90" />
+            </div>
+            <div class="cone-field">
+              <label>Bereik <span id="range-value">20 m</span></label>
+              <input id="range-slider" type="range" min="5" max="80" value="20" />
+            </div>
+            <button id="btn-save-cone" type="button">Cone opslaan</button>
+          </div>
+        </div>
+        <button id="btn-parking-photo" class="secondary wide map-extra-action" type="button">Parkeermogelijkheid</button>
+      </section>
+
+      <section class="gallery-band">
+        <div class="gallery-head">
+          <div>
+            <div class="panel-title">Sessiegalerij</div>
+            <p id="gallery-summary" class="muted">Geen sessie actief</p>
+          </div>
+          <button id="btn-export-session-bottom" class="secondary" type="button">Exporteer ZIP</button>
+        </div>
+        <div id="gallery" class="gallery"></div>
+      </section>
+
+      <section class="camera-settings-band">
+        <section class="panel camera-settings">
+          <div class="panel-title">Camera</div>
+          <label>Camera IP</label>
+          <input id="camera-ip" value="192.168.1.243" />
+          <div class="field-row">
+            <input id="camera-user" value="admin" placeholder="Gebruiker" />
+            <input id="camera-pass" type="password" placeholder="Wachtwoord" />
+          </div>
+          <div class="field-row">
+            <button id="btn-test" type="button">Test beeld</button>
+            <button id="btn-diagnose" type="button" class="secondary">Diagnose</button>
+          </div>
+          <pre id="diagnose-output"></pre>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <div id="drawer-backdrop" class="drawer-backdrop"></div>
+  <aside id="drawer" class="drawer" aria-label="Sessiemenu">
+    <div class="drawer-head">
+      <div>
+        <p class="eyebrow">Menu</p>
+        <h2>Sessies</h2>
+      </div>
+      <button id="btn-close-menu" class="secondary" type="button">Sluit</button>
+    </div>
+
+    <section class="drawer-section">
+      <div class="panel-title">Nieuwe sessie</div>
+      <input id="session-name" placeholder="Sessienaam" value="UNV test" />
+      <input id="session-location" placeholder="Locatie" />
+      <input id="session-surveyor" placeholder="Schouwer" value="CHS" />
+      <button id="btn-session" type="button">Start sessie</button>
+    </section>
+
+    <section class="drawer-section">
+      <div class="panel-title">Bestaande sessies</div>
+      <button id="btn-refresh-sessions" class="secondary wide" type="button">Ververs lijst</button>
+      <div id="session-list" class="session-list"></div>
+    </section>
+  </aside>
+
+  <div id="camera-modal" class="modal-backdrop open">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="camera-modal-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Opstarten</p>
+          <h2 id="camera-modal-title">Camera verbinding</h2>
+        </div>
+        <button id="btn-close-camera-modal" class="secondary" type="button">Sluit</button>
+      </div>
+      <div class="modal-body">
+        <label>Camera IP</label>
+        <input id="modal-camera-ip" value="192.168.1.243" inputmode="decimal" />
+        <div class="field-row">
+          <input id="modal-camera-user" value="admin" placeholder="Gebruiker" />
+          <input id="modal-camera-pass" type="password" placeholder="Wachtwoord" />
+        </div>
+        <button id="btn-save-camera-modal" type="button">Opslaan</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="session-modal" class="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="session-modal-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Geen sessie</p>
+          <h2 id="session-modal-title">Start een sessie</h2>
+        </div>
+        <button id="btn-close-session-modal" class="secondary" type="button">Sluit</button>
+      </div>
+      <div class="modal-body">
+        <input id="modal-session-name" placeholder="Sessienaam" value="UNV test" />
+        <input id="modal-session-location" placeholder="Locatie" />
+        <input id="modal-session-surveyor" placeholder="Schouwer" value="CHS" />
+        <button id="btn-create-session-modal" type="button">Start sessie</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="note-modal" class="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="note-modal-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Opmerking</p>
+          <h2 id="note-modal-title">Opmerking toevoegen</h2>
+        </div>
+        <button id="btn-close-note-modal" class="secondary" type="button">Sluit</button>
+      </div>
+      <div class="modal-body">
+        <p id="note-photo-label" class="muted">Geen foto geselecteerd</p>
+        <textarea id="photo-note" rows="5" placeholder="Typ hier de opmerking"></textarea>
+        <button id="btn-save-note" type="button">Opmerking opslaan</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="photo-viewer-modal" class="modal-backdrop photo-viewer-backdrop">
+    <section class="photo-viewer-modal" role="dialog" aria-modal="true" aria-labelledby="photo-viewer-title">
+      <div class="photo-viewer-head">
+        <h2 id="photo-viewer-title">Foto</h2>
+        <button id="btn-close-photo-viewer" class="secondary" type="button">Sluit</button>
+      </div>
+      <img id="photo-viewer-image" alt="Volledig scherm foto" />
+    </section>
+  </div>
+
+  <div id="workflow-modal" class="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="workflow-modal-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Cameraset compleet</p>
+          <h2 id="workflow-modal-title">Schouwer, je gaat nu verder naar <span id="workflow-next-camera">CAM-002</span></h2>
+        </div>
+      </div>
+      <div class="modal-body workflow-modal-body">
+        <p class="muted">Kies of je doorgaat naar de volgende camera, of eerst nog een foto van deze set opnieuw maakt.</p>
+        <button id="btn-workflow-continue" type="button">Verder gaan</button>
+        <div class="workflow-retake-actions">
+          <button id="btn-workflow-retake-beeld" class="secondary" type="button">Beeld opnieuw maken</button>
+          <button id="btn-workflow-retake-locatie" class="secondary" type="button">Locatie opnieuw maken</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="missing-image-modal" class="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="missing-image-modal-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Beeldfoto ontbreekt</p>
+          <h2 id="missing-image-modal-title">Er is nog geen beeldfoto voor <span id="missing-image-camera">CAM-001</span></h2>
+        </div>
+      </div>
+      <div class="modal-body workflow-modal-body">
+        <p class="muted">Je hebt wel een locatiefoto vastgelegd. Kies of je nu alsnog de beeldfoto maakt, of bewust doorgaat naar de volgende camera.</p>
+        <button id="btn-missing-image-make" type="button">Beeldfoto maken</button>
+        <button id="btn-missing-image-continue" class="secondary" type="button">Toch doorgaan</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="special-question-modal" class="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="special-question-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Aanvullende vraag</p>
+          <h2 id="special-question-title">Vraag beantwoorden</h2>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p id="special-question-text" class="muted"></p>
+        <textarea id="special-question-answer" rows="5" placeholder="Antwoord optioneel"></textarea>
+        <button id="btn-save-special-question" type="button">Opslaan</button>
+        <button id="btn-skip-special-question" class="secondary" type="button">Overslaan</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="export-modal" class="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Export</p>
+          <h2 id="export-modal-title">ZIP export instellingen</h2>
+        </div>
+        <button id="btn-close-export-modal" class="secondary" type="button">Sluit</button>
+      </div>
+      <div class="modal-body">
+        <div class="export-slider-head">
+          <label for="export-marker-size">Grootte genummerde bolletjes</label>
+          <span id="export-marker-size-value">18px</span>
+        </div>
+        <input id="export-marker-size" type="range" min="10" max="34" step="1" value="18" />
+        <div id="export-marker-preview" class="export-marker-preview" aria-hidden="true">
+          <span>1</span>
+          <span>2</span>
+          <span>12</span>
+        </div>
+        <p class="muted">Alleen de bolletjes met cameranummers in kaart_met_cones.png worden aangepast.</p>
+        <button id="btn-start-export" type="button">Exporteer ZIP</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="/vendor/leaflet/leaflet.js"></script>
+  <script src="/vendor/jszip.min.js"></script>
+  <script src="/js/app-core.js"></script>
+  <script src="/js/app-storage.js"></script>
+  <script src="/js/app-image.js"></script>
+  <script src="/js/app-camera.js"></script>
+  <script src="/js/app-sessions.js"></script>
+  <script src="/js/app-capture.js"></script>
+  <script src="/js/app-gps.js"></script>
+  <script src="/js/app-gallery.js"></script>
+  <script src="/js/app-export.js"></script>
+  <script src="/js/app-map.js"></script>
+  <script src="/js/app-bootstrap.js"></script>
+</body>
+</html>
