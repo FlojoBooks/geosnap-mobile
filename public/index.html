@@ -165,8 +165,14 @@
       <button id="btn-close-menu" class="secondary" type="button">Sluit</button>
     </div>
 
+    <section class="drawer-section" style="border-bottom: 1px solid var(--line); padding-bottom: 15px; margin-bottom: 15px;">
+      <button id="btn-show-clients" class="wide" style="font-weight: 600;" type="button">👥 Klanten & Tarieven</button>
+    </section>
+
     <section class="drawer-section">
       <div class="panel-title">Nieuwe sessie</div>
+      <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Selecteer Klant</label>
+      <select id="session-client-id" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); margin-bottom: 8px;"></select>
       <input id="session-name" placeholder="Sessienaam" value="UNV test" />
       <input id="session-location" placeholder="Locatie" />
       <input id="session-surveyor" placeholder="Schouwer" value="CHS" />
@@ -211,6 +217,8 @@
         <button id="btn-close-session-modal" class="secondary" type="button">Sluit</button>
       </div>
       <div class="modal-body">
+        <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Selecteer Klant</label>
+        <select id="modal-session-client-id" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); margin-bottom: 8px;"></select>
         <input id="modal-session-name" placeholder="Sessienaam" value="UNV test" />
         <input id="modal-session-location" placeholder="Locatie" />
         <input id="modal-session-surveyor" placeholder="Schouwer" value="CHS" />
@@ -402,6 +410,37 @@
     </section>
   </div>
 
+  <div id="clients-modal" class="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="clients-modal-title" style="max-width: 650px; width: calc(100% - 28px); max-height: calc(100vh - 28px); display: flex; flex-direction: column; overflow: hidden;">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Beheer</p>
+          <h2 id="clients-modal-title">Klanten & Prijzen</h2>
+        </div>
+        <button id="btn-close-clients-modal" class="secondary" type="button">Sluit</button>
+      </div>
+      <div class="modal-body" style="overflow: auto; flex: 1; display: flex; flex-direction: column; gap: 20px;">
+        <div style="display: grid; grid-template-columns: 200px 1fr; gap: 15px; min-height: 350px;">
+          <!-- Left side: Clients List -->
+          <div style="border-right: 1px solid var(--line); padding-right: 15px; display: flex; flex-direction: column; gap: 10px;">
+            <h3 style="font-size: 0.9rem; margin: 0;">Klanten</h3>
+            <div id="clients-list" style="display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1;">
+              <!-- Wordt dynamisch gevuld -->
+            </div>
+            <div style="border-top: 1px solid var(--line); padding-top: 10px;">
+              <input id="new-client-name" placeholder="Nieuwe klant..." style="width: 100%; height: 36px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); font-size: 0.8rem; margin-bottom: 6px;" />
+              <button id="btn-add-client" class="secondary wide" style="min-height: 32px; font-size: 0.8rem;" type="button">Klant toevoegen</button>
+            </div>
+          </div>
+          <!-- Right side: Client Details & Overrides -->
+          <div id="client-detail-pane" style="display: flex; flex-direction: column; gap: 15px;">
+            <p class="muted" style="text-align: center; margin-top: 50px;">Selecteer een klant om tarieven te beheren.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <div id="toast" class="toast"></div>
   <script src="/vendor/leaflet/leaflet.js"></script>
   <script src="/vendor/jszip.min.js"></script>
@@ -415,6 +454,7 @@
   <script src="/js/app-gallery.js"></script>
   <script src="/js/app-export.js"></script>
   <script src="/js/app-quote.js"></script>
+  <script src="/js/app-clients.js"></script>
   <script src="/js/app-map.js"></script>
   <script src="/js/app-bootstrap.js"></script>
 </body>

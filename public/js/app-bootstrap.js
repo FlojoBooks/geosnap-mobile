@@ -86,6 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadSessions();
   startGps();
   if (typeof initQuote === 'function') initQuote();
+  if (typeof initClients === 'function') initClients();
   setMode('beeld');
   openCameraModal();
 });

@@ -67,6 +67,7 @@ const localApi = {
       name: input.name || `Schouw ${new Date().toLocaleDateString('nl-NL')}`,
       location: input.location || '',
       surveyor: input.surveyor || '',
+      client_id: input.client_id || '',
       created_at: now,
       updated_at: now
     };

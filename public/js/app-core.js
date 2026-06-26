@@ -39,7 +39,8 @@ const state = {
   snapshotPaths: [],
   snapshotPathCacheKey: '',
   wakeLock: null,
-  quoteModalOpen: false
+  quoteModalOpen: false,
+  clientsModalOpen: false
 };
 
 const PRICING_KEY = 'alphatron-geosnap-mobile-pricing';
@@ -65,6 +66,22 @@ function saveCablePricing(pricing) {
 
 function getCableTypes() {
   return Object.keys(getCablePricing());
+}
+
+const CLIENTS_KEY = 'alphatron-geosnap-mobile-clients';
+
+function getClients() {
+  const saved = localStorage.getItem(CLIENTS_KEY);
+  if (!saved) return [];
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return [];
+  }
+}
+
+function saveClients(clients) {
+  localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
 }
 
 const $ = (id) => document.getElementById(id);

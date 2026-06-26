@@ -3,7 +3,8 @@ async function createSession() {
   await createSessionFromValues({
     name: $('session-name').value.trim(),
     location: $('session-location').value.trim(),
-    surveyor: $('session-surveyor').value.trim()
+    surveyor: $('session-surveyor').value.trim(),
+    client_id: $('session-client-id').value
   });
 }
 
@@ -11,7 +12,8 @@ async function createSessionFromModal() {
   await createSessionFromValues({
     name: $('modal-session-name').value.trim(),
     location: $('modal-session-location').value.trim(),
-    surveyor: $('modal-session-surveyor').value.trim()
+    surveyor: $('modal-session-surveyor').value.trim(),
+    client_id: $('modal-session-client-id').value
   });
   closeSessionModal();
 }
@@ -123,6 +125,7 @@ function closeDrawer() {
 }
 
 function openSessionModal() {
+  if (typeof populateSessionClientSelects === 'function') populateSessionClientSelects();
   $('modal-session-name').value = $('session-name').value.trim() || `Schouw ${new Date().toLocaleDateString('nl-NL')}`;
   $('modal-session-location').value = $('session-location').value.trim();
   $('modal-session-surveyor').value = $('session-surveyor').value.trim() || 'CHS';

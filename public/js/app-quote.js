@@ -59,6 +59,19 @@ function openQuoteModal() {
   populateCableSelects();
   setQuoteTab('quote');
   
+  const clientNameInput = $('quote-client-name');
+  if (state.session.client_id) {
+    const clients = getClients();
+    const client = clients.find(c => c.id === state.session.client_id);
+    if (client) {
+      clientNameInput.value = client.name;
+    } else {
+      clientNameInput.value = localStorage.getItem(CLIENT_NAME_KEY) || '';
+    }
+  } else {
+    clientNameInput.value = localStorage.getItem(CLIENT_NAME_KEY) || '';
+  }
+  
   $('quote-modal').classList.add('open');
   document.body.classList.add('modal-open');
 }
@@ -146,6 +159,12 @@ function renderQuoteTable() {
   const pricing = getCablePricing();
   let grandTotal = 0;
   
+  let activeClient = null;
+  if (state.session && state.session.client_id) {
+    const clients = getClients();
+    activeClient = clients.find(c => c.id === state.session.client_id);
+  }
+  
   tableBody.innerHTML = camNumbers.map(camNum => {
     // Find cable info for this camera. We check the 'beeld' photo first, then 'locatie'
     const photos = state.photos.filter(p => Number(p.camera_number) === camNum);
@@ -153,7 +172,12 @@ function renderQuoteTable() {
     
     const cableType = mainPhoto ? (mainPhoto.cable_type || '') : '';
     const cableLength = mainPhoto ? (mainPhoto.cable_length || 0) : 0;
-    const rate = pricing[cableType] || 0;
+    
+    let rate = pricing[cableType] || 0;
+    if (activeClient && activeClient.custom_pricing && activeClient.custom_pricing[cableType] !== undefined) {
+      rate = activeClient.custom_pricing[cableType];
+    }
+    
     const subtotal = cableLength * rate;
     grandTotal += subtotal;
     
