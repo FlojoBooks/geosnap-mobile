@@ -4,6 +4,7 @@
   "description": "Alphatron GeoSnap Mobile Application",
   "main": "public/index.html",
   "scripts": {
+    "start": "node start-dev.js",
     "dev": "npx cap copy && npx cap sync",
     "sync": "npx cap sync"
   },
