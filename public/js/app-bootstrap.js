@@ -33,6 +33,8 @@ function bindUI() {
   $('btn-missing-image-make').addEventListener('click', continueMissingImageWithPhoto);
   $('btn-missing-image-continue').addEventListener('click', continueMissingImageToNextCamera);
   $('btn-refresh-sessions').addEventListener('click', loadSessions);
+  $('btn-show-quote').addEventListener('click', openQuoteModal);
+  $('btn-close-quote-modal').addEventListener('click', closeQuoteModal);
   $('btn-export-session').addEventListener('click', openExportModal);
   $('btn-export-session-bottom').addEventListener('click', openExportModal);
   $('btn-close-export-modal').addEventListener('click', closeExportModal);
@@ -83,6 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadPhoneDevices();
   await loadSessions();
   startGps();
+  if (typeof initQuote === 'function') initQuote();
   setMode('beeld');
   openCameraModal();
 });

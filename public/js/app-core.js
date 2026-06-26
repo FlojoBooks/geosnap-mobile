@@ -38,8 +38,34 @@ const state = {
   unvPaintFlip: false,
   snapshotPaths: [],
   snapshotPathCacheKey: '',
-  wakeLock: null
+  wakeLock: null,
+  quoteModalOpen: false
 };
+
+const PRICING_KEY = 'alphatron-geosnap-mobile-pricing';
+const DEFAULT_PRICING = {
+  "Hostalliet": 4.50,
+  "P25": 6.00,
+  "Stalen buis": 12.50
+};
+
+function getCablePricing() {
+  const saved = localStorage.getItem(PRICING_KEY);
+  if (!saved) return { ...DEFAULT_PRICING };
+  try {
+    return JSON.parse(saved);
+  } catch {
+    return { ...DEFAULT_PRICING };
+  }
+}
+
+function saveCablePricing(pricing) {
+  localStorage.setItem(PRICING_KEY, JSON.stringify(pricing));
+}
+
+function getCableTypes() {
+  return Object.keys(getCablePricing());
+}
 
 const $ = (id) => document.getElementById(id);
 const DB_NAME = 'alphatron-geosnap-mobile';

@@ -111,6 +111,8 @@ const localApi = {
       reference_text: meta.reference_text || '',
       special_kind: meta.special_kind || '',
       special_answer: meta.special_answer || '',
+      cable_type: meta.cable_type || '',
+      cable_length: meta.cable_length != null ? Number(meta.cable_length) : 0,
       created_at: now
     };
     session.updated_at = now;
@@ -121,8 +123,8 @@ const localApi = {
   async updatePhoto(photoId, patch) {
     const photo = await localGet('photos', photoId);
     if (!photo) return { success: false, error: 'Foto niet gevonden' };
-    ['latitude', 'longitude', 'accuracy', 'heading', 'fov', 'range', 'floor', 'camera_number', 'reference_number', 'note', 'reference_text', 'source', 'special_kind', 'special_answer'].forEach(key => {
-      if (patch[key] !== undefined) photo[key] = ['floor', 'note', 'reference_text', 'source', 'special_kind', 'special_answer'].includes(key) ? patch[key] : Number(patch[key]);
+    ['latitude', 'longitude', 'accuracy', 'heading', 'fov', 'range', 'floor', 'camera_number', 'reference_number', 'note', 'reference_text', 'source', 'special_kind', 'special_answer', 'cable_type', 'cable_length'].forEach(key => {
+      if (patch[key] !== undefined) photo[key] = ['floor', 'note', 'reference_text', 'source', 'special_kind', 'special_answer', 'cable_type'].includes(key) ? patch[key] : Number(patch[key]);
     });
     if (patch.blob !== undefined) photo.blob = patch.blob;
     if (patch.type !== undefined) photo.type = patch.type;

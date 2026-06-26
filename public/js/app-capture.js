@@ -444,6 +444,14 @@ function openWorkflowModal() {
   if (!modal || !gate) return;
   state.workflowModalOpen = true;
   $('workflow-next-camera').textContent = `CAM-${padCam(gate.nextCam)}`;
+  
+  if (typeof populateCableSelects === 'function') populateCableSelects();
+  const completedCamNum = Number(gate.completedCam);
+  const existing = state.photos.find(p => Number(p.camera_number) === completedCamNum && (p.cable_type || p.cable_length));
+  const types = getCableTypes();
+  $('wf-cable-type').value = existing ? (existing.cable_type || types[0] || '') : (types[0] || '');
+  $('wf-cable-length').value = existing ? (existing.cable_length || 0) : 0;
+
   modal.classList.add('open');
   document.body.classList.add('modal-open');
   syncCaptureLocks();
@@ -458,9 +466,27 @@ function closeWorkflowModal(clearGate = false) {
   syncCaptureLocks();
 }
 
-function continueWorkflowToNextCamera() {
+async function continueWorkflowToNextCamera() {
   const gate = state.workflowGate;
   if (!gate) return;
+  
+  const cableType = $('wf-cable-type').value;
+  const cableLength = Number($('wf-cable-length').value || 0);
+  const completedCamNum = Number(gate.completedCam);
+  
+  const photosToUpdate = state.photos.filter(p => Number(p.camera_number) === completedCamNum);
+  for (const photo of photosToUpdate) {
+    try {
+      const res = await localApi.updatePhoto(photo.id, { cable_type: cableType, cable_length: cableLength });
+      if (res.success) {
+        photo.cable_type = cableType;
+        photo.cable_length = cableLength;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
   $('camera-number').value = gate.nextCam;
   closeWorkflowModal(true);
   setMode('beeld');

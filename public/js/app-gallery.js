@@ -122,6 +122,18 @@ function openNoteModal(photoId) {
   state.selectedGalleryPhotoId = photo.id;
   $('note-photo-label').textContent = `${photoDisplayLabel(photo)} ${photo.type === 'referentie' ? '' : (photo.floor || 'BG')}`.trim();
   $('photo-note').value = photo.note || '';
+  
+  const container = $('note-cable-container');
+  if (photo.type === 'beeld' || photo.type === 'locatie') {
+    container.style.display = 'flex';
+    if (typeof populateCableSelects === 'function') populateCableSelects();
+    const types = getCableTypes();
+    $('note-cable-type').value = photo.cable_type || types[0] || '';
+    $('note-cable-length').value = photo.cable_length || 0;
+  } else {
+    container.style.display = 'none';
+  }
+  
   $('note-modal').classList.add('open');
   renderGallery();
 }
@@ -134,10 +146,15 @@ async function savePhotoNote() {
   const photo = state.photos.find(item => item.id === state.selectedGalleryPhotoId);
   if (!photo) return showToast('Foto niet gevonden');
   try {
-    await updatePhoto(photo.id, { note: $('photo-note').value.trim() });
+    const patch = { note: $('photo-note').value.trim() };
+    if (photo.type === 'beeld' || photo.type === 'locatie') {
+      patch.cable_type = $('note-cable-type').value;
+      patch.cable_length = Number($('note-cable-length').value || 0);
+    }
+    await updatePhoto(photo.id, patch);
     closeNoteModal();
     renderGallery();
-    showToast('Opmerking opgeslagen');
+    showToast('Gegevens opgeslagen');
   } catch (err) {
     showToast(err.message);
   }
