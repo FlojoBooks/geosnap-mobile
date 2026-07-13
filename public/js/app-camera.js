@@ -194,6 +194,8 @@ async function startPhoneCamera(forceRestart = false) {
   if (state.phoneStream && !forceRestart && isPhoneStreamLive()) {
     $('phone-video').srcObject = state.phoneStream;
     $('viewer-empty').style.display = 'none';
+    $('viewer-empty').style.cursor = '';
+    $('viewer-empty').title = '';
     $('live-badge').textContent = 'telefoon camera actief';
     return;
   }
@@ -202,10 +204,14 @@ async function startPhoneCamera(forceRestart = false) {
     state.phoneStream = await getBackCameraStream();
     $('phone-video').srcObject = state.phoneStream;
     $('viewer-empty').style.display = 'none';
+    $('viewer-empty').style.cursor = '';
+    $('viewer-empty').title = '';
     await loadPhoneDevices();
   } catch (err) {
     $('viewer-empty').style.display = 'grid';
-    $('viewer-empty').innerHTML = `<strong>Locatiecamera niet beschikbaar</strong><span>${escapeHtml(err.message)}</span>`;
+    $('viewer-empty').style.cursor = 'pointer';
+    $('viewer-empty').title = 'Klik om camera opnieuw te proberen';
+    $('viewer-empty').innerHTML = `<strong>Locatiecamera niet beschikbaar</strong><span>${escapeHtml(err.message)}</span><span style="font-size: 12px; margin-top: 15px; text-decoration: underline; opacity: 0.95; color: #5b5cf0; font-weight: bold;">Tik hier om opnieuw te proberen</span>`;
     $('live-badge').textContent = 'geen device camera';
   }
 }
@@ -707,3 +713,11 @@ function responseByteLength(response) {
   if (typeof data === 'string') return data.length;
   return JSON.stringify(data).length;
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('viewer-empty')?.addEventListener('click', () => {
+    if (state.mode === 'locatie' && !state.phoneStream) {
+      startPhoneCamera(true);
+    }
+  });
+});
