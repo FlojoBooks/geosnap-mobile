@@ -44,8 +44,15 @@ async function exportSession(options = {}) {
     if (!photos.length) return showToast('Geen foto\'s om te exporteren');
 
     const zip = new JSZip();
+    const cameraPhotos = photos.filter(photo => photo.type === 'beeld' && photo.latitude != null && photo.longitude != null);
+    const parkingPhotos = photos.filter(photo => photo.special_kind === 'parking' && photo.latitude != null && photo.longitude != null);
+    const centralPhotos = photos.filter(photo => photo.special_kind === 'central' && photo.latitude != null && photo.longitude != null);
+    const center = getMapExportCenter([...cameraPhotos, ...parkingPhotos, ...centralPhotos]);
+    const centerPx = lonLatToWorldPixel(center.lng, center.lat, TILE_ZOOM);
+    const origin = { x: centerPx.x - 1400 / 2, y: centerPx.y - 1000 / 2 };
+
     const cleanSession = stripSessionForExport(session);
-    const cleanPhotos = photos.map(stripPhotoForExport);
+    const cleanPhotos = photos.map(p => stripPhotoForExport(p, origin));
     const fileBase = sanitizeFileName(session.name || 'geosnap-export');
     const fileName = `${fileBase}-${formatExportStamp(new Date())}.zip`;
 
@@ -107,10 +114,37 @@ function stripSessionForExport(session) {
   return clean;
 }
 
-function stripPhotoForExport(photo) {
+function stripPhotoForExport(photo, origin) {
   const { blob, filename, ...clean } = photo;
+  
+  let appX = null;
+  let appY = null;
+  let appLength = null;
+  
+  if (photo.latitude != null && photo.longitude != null && origin) {
+    const marker = latLngToCanvas(photo.latitude, photo.longitude, origin, TILE_ZOOM);
+    appX = Math.round(marker.x);
+    appY = Math.round(marker.y);
+    
+    // destinationPoint function is globally defined in app-map.js
+    if (typeof destinationPoint === 'function') {
+      const dest = destinationPoint(photo.latitude, photo.longitude, photo.heading || 0, photo.range || 20);
+      const destPx = latLngToCanvas(dest[0], dest[1], origin, TILE_ZOOM);
+      appLength = Math.round(Math.sqrt(Math.pow(destPx.x - marker.x, 2) + Math.pow(destPx.y - marker.y, 2)));
+    }
+  }
+  
+  const isCamera = photo.type !== 'referentie' && !photo.special_kind && photo.camera_number > 0;
+  const cameraId = isCamera ? `Cam_${String(photo.camera_number).padStart(2, '0')}` : '';
+  
   return {
     ...clean,
+    Camera_ID: cameraId,
+    App_X: appX,
+    App_Y: appY,
+    App_Rotation: photo.type === 'referentie' ? null : (photo.heading || 0),
+    App_FOV: photo.type === 'referentie' ? null : (photo.fov || 90),
+    App_Length: photo.type === 'referentie' ? null : (appLength || 0),
     export_filename: photoExportName(photo)
   };
 }
@@ -174,7 +208,13 @@ function buildPhotosCsv(photos) {
     'special_kind',
     'special_answer',
     'created_at',
-    'export_filename'
+    'export_filename',
+    'Camera_ID',
+    'App_X',
+    'App_Y',
+    'App_Rotation',
+    'App_FOV',
+    'App_Length'
   ];
   const rows = photos.map(photo => headers.map(key => csvCell(photo[key])).join(','));
   return `${headers.join(',')}\n${rows.join('\n')}\n`;
