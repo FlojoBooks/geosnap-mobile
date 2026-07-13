@@ -1230,3 +1230,34 @@ pre {
   }
 }
 
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.slider-container input[type="range"] {
+  flex: 1;
+}
+.btn-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  font-size: 13px;
+  padding: 0 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.btn-step:active {
+  background: var(--bg);
+}
+

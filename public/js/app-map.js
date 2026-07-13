@@ -7,6 +7,9 @@ function initMap() {
     maxZoom: 20,
     attribution: 'Tiles Esri'
   }).addTo(state.map);
+  
+  const downloadBtn = document.getElementById('btn-download-map');
+  if (downloadBtn) downloadBtn.style.display = 'inline-block';
 }
 
 function centerMapOnGps(lat, lng, accuracy) {
@@ -299,4 +302,91 @@ function destinationPoint(lat, lng, bearingDeg, distanceM) {
   const phi2 = Math.asin(Math.sin(phi1) * Math.cos(delta) + Math.cos(phi1) * Math.sin(delta) * Math.cos(theta));
   const lambda2 = lambda1 + Math.atan2(Math.sin(theta) * Math.sin(delta) * Math.cos(phi1), Math.cos(delta) - Math.sin(phi1) * Math.sin(phi2));
   return [phi2 * 180 / Math.PI, lambda2 * 180 / Math.PI];
+}
+
+async function downloadVisibleTiles() {
+  if (!state.map || !window.L) return showToast('Kaart is nog niet geladen');
+  if (!navigator.onLine) return showToast('Internetverbinding is vereist om kaarten te downloaden');
+  
+  const btn = document.getElementById('btn-download-map');
+  if (!btn) return;
+  
+  try {
+    const bounds = state.map.getBounds();
+    const northEast = bounds.getNorthEast();
+    const southWest = bounds.getSouthWest();
+    
+    const tileTasks = [];
+    const TILE_SIZE = 256;
+    
+    function lonLatToWorldPixelLocal(lng, lat, zoom) {
+      const sinLat = Math.sin(Number(lat) * Math.PI / 180);
+      const scale = TILE_SIZE * Math.pow(2, zoom);
+      return {
+        x: (Number(lng) + 180) / 360 * scale,
+        y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale
+      };
+    }
+    
+    for (let z = 17; z <= 19; z++) {
+      const swPx = lonLatToWorldPixelLocal(southWest.lng, southWest.lat, z);
+      const nePx = lonLatToWorldPixelLocal(northEast.lng, northEast.lat, z);
+      
+      const minX = Math.min(Math.floor(swPx.x / TILE_SIZE), Math.floor(nePx.x / TILE_SIZE));
+      const maxX = Math.max(Math.floor(swPx.x / TILE_SIZE), Math.floor(nePx.x / TILE_SIZE));
+      const minY = Math.min(Math.floor(swPx.y / TILE_SIZE), Math.floor(nePx.y / TILE_SIZE));
+      const maxY = Math.max(Math.floor(swPx.y / TILE_SIZE), Math.floor(nePx.y / TILE_SIZE));
+      
+      for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+          tileTasks.push({ z, x, y });
+        }
+      }
+    }
+    
+    const total = tileTasks.length;
+    if (total === 0) return showToast('Geen kaarttegels gevonden in deze weergave');
+    if (total > 250) {
+      if (!confirm(`Je staat op het punt om ${total} kaarttegels te downloaden. Dit kan even duren. Wil je doorgaan?`)) {
+        return;
+      }
+    }
+    
+    btn.disabled = true;
+    btn.textContent = `⏳ 0% (0/${total})`;
+    
+    let completed = 0;
+    const batchSize = 4;
+    for (let i = 0; i < total; i += batchSize) {
+      const batch = tileTasks.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (tile) => {
+        try {
+          if (typeof getTileBlob === 'function') {
+            await getTileBlob(tile.z, tile.x, tile.y);
+          } else {
+            const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${tile.z}/${tile.y}/${tile.x}`;
+            await fetch(url, { cache: 'force-cache' });
+          }
+        } catch (e) {
+          console.error('Tile fetch failed', e);
+        }
+      }));
+      completed += batch.length;
+      const pct = Math.round((completed / total) * 100);
+      btn.textContent = `⏳ ${pct}% (${completed}/${total})`;
+    }
+    
+    btn.textContent = `✅ Regio gereed`;
+    showToast(`${total} Kaarttegels succesvol offline opgeslagen!`);
+    
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = `📥 Download Kaartregio`;
+    }, 4000);
+    
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = `📥 Download Kaartregio`;
+    showToast(`Fout bij downloaden: ${err.message}`);
+  }
 }

@@ -96,7 +96,10 @@
             <div class="panel-title">Kaart & camera cones</div>
             <p id="map-status" class="muted">Open een sessie met beeldfoto's om camera's te plaatsen.</p>
           </div>
-          <button id="btn-refresh-map" class="secondary" type="button">Kaart verversen</button>
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-download-map" class="secondary" type="button" style="display: none;">📥 Download Kaartregio</button>
+            <button id="btn-refresh-map" class="secondary" type="button">Kaart verversen</button>
+          </div>
           <button id="btn-close-cone-overlay" class="secondary cone-overlay-close" type="button">Later</button>
         </div>
         <div class="map-layout">
@@ -109,15 +112,27 @@
             </div>
             <div class="cone-field">
               <label>Richting <span id="heading-value">0 graden</span></label>
-              <input id="heading-slider" type="range" min="0" max="359" value="0" />
+              <div class="slider-container">
+                <button class="btn-step" type="button" data-slider="heading-slider" data-step="-5">-5°</button>
+                <input id="heading-slider" type="range" min="0" max="359" value="0" />
+                <button class="btn-step" type="button" data-slider="heading-slider" data-step="5">+5°</button>
+              </div>
             </div>
             <div class="cone-field">
               <label>Beeldhoek <span id="fov-value">90 graden</span></label>
-              <input id="fov-slider" type="range" min="20" max="140" value="90" />
+              <div class="slider-container">
+                <button class="btn-step" type="button" data-slider="fov-slider" data-step="-5">-5°</button>
+                <input id="fov-slider" type="range" min="20" max="140" value="90" />
+                <button class="btn-step" type="button" data-slider="fov-slider" data-step="5">+5°</button>
+              </div>
             </div>
             <div class="cone-field">
               <label>Bereik <span id="range-value">20 m</span></label>
-              <input id="range-slider" type="range" min="5" max="80" value="20" />
+              <div class="slider-container">
+                <button class="btn-step" type="button" data-slider="range-slider" data-step="-1">-1m</button>
+                <input id="range-slider" type="range" min="5" max="80" value="20" />
+                <button class="btn-step" type="button" data-slider="range-slider" data-step="1">+1m</button>
+              </div>
             </div>
             <button id="btn-save-cone" type="button">Cone opslaan</button>
           </div>

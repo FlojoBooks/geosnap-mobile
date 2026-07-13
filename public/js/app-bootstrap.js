@@ -41,11 +41,28 @@ function bindUI() {
   $('btn-start-export').addEventListener('click', exportSessionFromModal);
   $('export-marker-size').addEventListener('input', updateExportMarkerSizeLabel);
   $('btn-refresh-map').addEventListener('click', renderMap);
+  $('btn-download-map')?.addEventListener('click', downloadVisibleTiles);
   $('btn-parking-photo').addEventListener('click', () => startSpecialReferenceCapture('parking'));
   $('btn-close-cone-overlay').addEventListener('click', closeConeOverlay);
   $('btn-save-cone').addEventListener('click', saveSelectedCone);
   ['heading-slider', 'fov-slider', 'range-slider'].forEach(id => {
     $(id).addEventListener('input', updateSelectedConeFromControls);
+  });
+  document.querySelectorAll('.btn-step').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sliderId = btn.getAttribute('data-slider');
+      const step = Number(btn.getAttribute('data-step'));
+      const slider = $(sliderId);
+      if (slider) {
+        let val = Number(slider.value) + step;
+        const min = Number(slider.min || 0);
+        const max = Number(slider.max || 100);
+        if (val < min) val = min;
+        if (val > max) val = max;
+        slider.value = val;
+        slider.dispatchEvent(new Event('input'));
+      }
+    });
   });
   $('btn-menu').addEventListener('click', openDrawer);
   $('btn-close-menu').addEventListener('click', closeDrawer);
