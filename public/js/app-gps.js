@@ -27,3 +27,15 @@ function handleGpsPosition(pos) {
   centerMapOnGps(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
   preloadMapTilesForGps(pos.coords.latitude, pos.coords.longitude).catch(() => {});
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const gpsStatus = document.getElementById('gps-status');
+  if (gpsStatus) {
+    gpsStatus.style.cursor = 'pointer';
+    gpsStatus.title = 'Klik om GPS handmatig te starten of toestemming te vragen';
+    gpsStatus.addEventListener('click', () => {
+      gpsStatus.textContent = 'GPS opstarten...';
+      startGps();
+    });
+  }
+});
