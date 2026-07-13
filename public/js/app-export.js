@@ -49,7 +49,7 @@ async function exportSession(options = {}) {
     const centralPhotos = photos.filter(photo => photo.special_kind === 'central' && photo.latitude != null && photo.longitude != null);
     const center = getMapExportCenter([...cameraPhotos, ...parkingPhotos, ...centralPhotos]);
     const centerPx = lonLatToWorldPixel(center.lng, center.lat, TILE_ZOOM);
-    const origin = { x: centerPx.x - 1400 / 2, y: centerPx.y - 1000 / 2 };
+    const origin = { x: centerPx.x - 1397 / 2, y: centerPx.y - 1000 / 2 };
 
     const cleanSession = stripSessionForExport(session);
     const cleanPhotos = photos.map(p => stripPhotoForExport(p, origin));
@@ -297,7 +297,7 @@ async function buildExportMapPngs(session, photos, options = {}) {
 }
 
 async function renderMapPng(session, photos, options = {}) {
-  const width = 1400;
+  const width = 1397;
   const height = 1000;
   const canvas = document.createElement('canvas');
   canvas.width = width;
