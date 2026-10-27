@@ -1,10 +1,11 @@
 {
   "name": "alphatron-geosnap-mobile",
-  "version": "0.2.15",
+  "version": "0.2.21",
   "description": "Alphatron GeoSnap Mobile Application",
   "main": "public/index.html",
   "scripts": {
     "start": "node start-dev.js",
+    "web": "npx --yes http-server public -o -p 8080",
     "dev": "npx cap copy && npx cap sync",
     "sync": "npx cap sync"
   },

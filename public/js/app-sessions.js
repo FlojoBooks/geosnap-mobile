@@ -42,6 +42,7 @@ async function createSessionFromValues(body) {
   updateWorkflowStatus();
   renderGallery();
   renderMap();
+  updateSwitchButtonVisibility();
   await loadSessions(state.session.id);
   closeDrawer();
   closeSessionModal();
@@ -79,15 +80,9 @@ async function openSessionById(id) {
   if (!id) return showToast('Geen sessie geselecteerd');
   const data = await localApi.getSession(id);
   if (!data.success) return showToast(data.error || 'Sessie openen mislukt');
-  state.session = {
-    id: data.data.id,
-    name: data.data.name,
-    location: data.data.location,
-    surveyor: data.data.surveyor,
-    created_at: data.data.created_at,
-    updated_at: data.data.updated_at
-  };
-  state.photos = data.data.photos || [];
+  const { photos, ...sessionData } = data.data;
+  state.session = sessionData;
+  state.photos = photos || [];
   state.selectedPhotoId = null;
   state.selectedGalleryPhotoId = null;
   state.pendingConePhotoId = null;
@@ -108,6 +103,7 @@ async function openSessionById(id) {
   renderGallery();
   renderMap();
   updateWorkflowStatus();
+  updateSwitchButtonVisibility();
   await loadSessions(state.session.id);
   closeDrawer();
   showToast('Sessie geopend');
@@ -134,5 +130,16 @@ function openSessionModal() {
 
 function closeSessionModal() {
   $('session-modal').classList.remove('open');
+}
+
+function updateSwitchButtonVisibility() {
+  const btn = $('btn-switch-equipment');
+  if (!btn) return;
+  const config = state.session?.quote_config;
+  if (config && config.subswitch_needed === 'ja' && Number(config.subswitch_qty || 0) > 0) {
+    btn.style.display = 'inline-block';
+  } else {
+    btn.style.display = 'none';
+  }
 }
 

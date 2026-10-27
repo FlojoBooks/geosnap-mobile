@@ -1,4 +1,4 @@
-const CACHE_NAME = 'alphatron-geosnap-mobile-shell-v8';
+const CACHE_NAME = 'alphatron-geosnap-mobile-shell-v19';
 const TILE_CACHE_NAME = 'alphatron-geosnap-mobile-tiles-v1';
 const APP_SHELL = [
   '/',

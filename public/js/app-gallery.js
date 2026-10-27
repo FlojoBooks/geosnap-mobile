@@ -127,9 +127,11 @@ function openNoteModal(photoId) {
   if (photo.type === 'beeld' || photo.type === 'locatie') {
     container.style.display = 'flex';
     if (typeof populateCableSelects === 'function') populateCableSelects();
+    if (typeof populateConnectedToSelect === 'function') populateConnectedToSelect($('note-connected-to'));
     const types = getCableTypes();
     $('note-cable-type').value = photo.cable_type || types[0] || '';
     $('note-cable-length').value = photo.cable_length || 0;
+    $('note-connected-to').value = photo.connected_to || 'recorder';
   } else {
     container.style.display = 'none';
   }
@@ -150,6 +152,7 @@ async function savePhotoNote() {
     if (photo.type === 'beeld' || photo.type === 'locatie') {
       patch.cable_type = $('note-cable-type').value;
       patch.cable_length = Number($('note-cable-length').value || 0);
+      patch.connected_to = $('note-connected-to').value;
     }
     await updatePhoto(photo.id, patch);
     closeNoteModal();

@@ -40,7 +40,8 @@ const state = {
   snapshotPathCacheKey: '',
   wakeLock: null,
   quoteModalOpen: false,
-  clientsModalOpen: false
+  clientsModalOpen: false,
+  mapFloorFilter: 'all'
 };
 
 const PRICING_KEY = 'alphatron-geosnap-mobile-pricing';
@@ -87,7 +88,7 @@ function saveClients(clients) {
 const $ = (id) => document.getElementById(id);
 const DB_NAME = 'alphatron-geosnap-mobile';
 const DB_VERSION = 2;
-const APP_VERSION = '0.2.15';
+const APP_VERSION = '0.2.20';
 const UNV_LIVE_INTERVAL_MS = 500;
 const CAMERA_NO_CACHE_HEADERS = {
   'Cache-Control': 'no-cache',

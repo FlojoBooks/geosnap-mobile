@@ -18,7 +18,7 @@
         <div>
           <p class="eyebrow">Alphatron GeoSnap Mobile</p>
           <h1>Camera schouw</h1>
-          <p class="app-version" id="app-version">v0.2.15</p>
+          <p class="app-version" id="app-version">v0.2.20</p>
         </div>
         <div class="statusline">
           <span id="server-status">Server controleren</span>
@@ -59,6 +59,7 @@
             <button id="btn-capture" class="shutter" type="button" aria-label="Foto vastleggen"></button>
             <button id="btn-reference-photo" class="secondary" type="button">Referentiefoto</button>
             <button id="btn-central-equipment" class="secondary" type="button">Centrale apparatuur</button>
+            <button id="btn-switch-equipment" class="secondary" type="button" style="display: none;">Switch apparatuur</button>
           </div>
           <div class="device-row">
             <select id="phone-device"></select>
@@ -72,13 +73,38 @@
             <p id="active-session" class="muted">Geen sessie actief</p>
             <button id="btn-export-session" class="secondary wide" type="button">Exporteer sessie</button>
             <button id="btn-show-quote" class="secondary wide" style="margin-top: 8px;" type="button">Offerte / Prijsopgave</button>
+            <button id="btn-configure-quote" class="secondary wide" style="margin-top: 8px;" type="button">⚙ Configureer Offerte</button>
           </section>
 
           <section class="panel compact">
             <div class="panel-title">Foto info</div>
             <div class="field-row">
               <label>CAM <input id="camera-number" type="number" min="1" value="1" /></label>
-              <label>Verdieping <input id="floor" value="BG" /></label>
+              <label>Verdieping 
+                <select id="floor" style="background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px; color: var(--text); font-size: 0.85rem; height: 32px; width: 120px;">
+                  <option value="Begane grond">Begane grond</option>
+                  <option value="1e verdieping">1e verdieping</option>
+                  <option value="2e verdieping">2e verdieping</option>
+                  <option value="3e verdieping">3e verdieping</option>
+                  <option value="4e verdieping">4e verdieping</option>
+                  <option value="5e verdieping">5e verdieping</option>
+                  <option value="6e verdieping">6e verdieping</option>
+                  <option value="7e verdieping">7e verdieping</option>
+                  <option value="8e verdieping">8e verdieping</option>
+                  <option value="9e verdieping">9e verdieping</option>
+                  <option value="10e verdieping">10e verdieping</option>
+                  <option value="11e verdieping">11e verdieping</option>
+                  <option value="12e verdieping">12e verdieping</option>
+                  <option value="13e verdieping">13e verdieping</option>
+                  <option value="14e verdieping">14e verdieping</option>
+                  <option value="15e verdieping">15e verdieping</option>
+                  <option value="16e verdieping">16e verdieping</option>
+                  <option value="17e verdieping">17e verdieping</option>
+                  <option value="18e verdieping">18e verdieping</option>
+                  <option value="19e verdieping">19e verdieping</option>
+                  <option value="20e verdieping">20e verdieping</option>
+                </select>
+              </label>
             </div>
             <p id="workflow-status" class="muted">Volgende stap: CAM-001 Beeld</p>
             <div class="gps-grid">
@@ -96,8 +122,10 @@
             <div class="panel-title">Kaart & camera cones</div>
             <p id="map-status" class="muted">Open een sessie met beeldfoto's om camera's te plaatsen.</p>
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button id="btn-download-map" class="secondary" type="button" style="display: none;">📥 Download Kaartregio</button>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="map-floor-select" style="height: 36px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); font-size: 0.8rem; min-width: 120px;">
+              <option value="all">Alle verdiepingen</option>
+            </select>
             <button id="btn-refresh-map" class="secondary" type="button">Kaart verversen</button>
           </div>
           <button id="btn-close-cone-overlay" class="secondary cone-overlay-close" type="button">Later</button>
@@ -180,19 +208,19 @@
       <button id="btn-close-menu" class="secondary" type="button">Sluit</button>
     </div>
 
-    <section class="drawer-section" style="border-bottom: 1px solid var(--line); padding-bottom: 15px; margin-bottom: 15px;">
-      <button id="btn-show-clients" class="wide" style="font-weight: 600;" type="button">👥 Klanten & Tarieven</button>
-    </section>
-
-    <section class="drawer-section">
-      <div class="panel-title">Nieuwe sessie</div>
-      <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Selecteer Klant</label>
-      <select id="session-client-id" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); margin-bottom: 8px;"></select>
-      <input id="session-name" placeholder="Sessienaam" value="UNV test" />
-      <input id="session-location" placeholder="Locatie" />
-      <input id="session-surveyor" placeholder="Schouwer" value="CHS" />
-      <button id="btn-session" type="button">Start sessie</button>
-    </section>
+     <section class="drawer-section" style="border-bottom: 1px solid var(--line); padding-bottom: 15px; margin-bottom: 15px; display: none;">
+       <button id="btn-show-clients" class="wide" style="font-weight: 600;" type="button">👥 Klanten & Tarieven</button>
+     </section>
+ 
+     <section class="drawer-section">
+       <div class="panel-title">Nieuwe sessie</div>
+       <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Klant</label>
+       <input id="session-client-id" placeholder="Klantnaam" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); margin-bottom: 8px;" />
+       <input id="session-name" placeholder="Sessienaam" value="UNV test" />
+       <input id="session-location" placeholder="Locatie" />
+       <input id="session-surveyor" placeholder="Schouwer" value="CHS" />
+       <button id="btn-session" type="button">Start sessie</button>
+     </section>
 
     <section class="drawer-section">
       <div class="panel-title">Bestaande sessies</div>
@@ -201,7 +229,29 @@
     </section>
   </aside>
 
-  <div id="camera-modal" class="modal-backdrop open">
+  <div id="startup-map-modal" class="modal-backdrop open">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="startup-map-title" style="max-width: 500px; width: calc(100% - 28px);">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Offline Kaart</p>
+          <h2 id="startup-map-title">Kaart downloaden?</h2>
+        </div>
+      </div>
+      <div class="modal-body">
+        <p class="muted" style="font-size: 0.85rem; line-height: 1.4; margin: 0 0 10px 0;">
+          Wil je de satellietkaart downloaden voor offline gebruik? 
+          Zodra je verbinding maakt met het wifinetwerk van de camera, heb je geen internetverbinding meer om kaarten te laden.
+        </p>
+        
+        <div id="startup-map-preview"></div>
+        
+        <button id="btn-download-startup-map" type="button" class="wide" style="margin-bottom: 8px;">📥 Kaart downloaden</button>
+        <button id="btn-skip-startup-map" class="secondary wide" type="button">Overslaan & verbinden</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="camera-modal" class="modal-backdrop">
     <section class="modal" role="dialog" aria-modal="true" aria-labelledby="camera-modal-title">
       <div class="modal-head">
         <div>
@@ -231,14 +281,14 @@
         </div>
         <button id="btn-close-session-modal" class="secondary" type="button">Sluit</button>
       </div>
-      <div class="modal-body">
-        <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Selecteer Klant</label>
-        <select id="modal-session-client-id" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); margin-bottom: 8px;"></select>
-        <input id="modal-session-name" placeholder="Sessienaam" value="UNV test" />
-        <input id="modal-session-location" placeholder="Locatie" />
-        <input id="modal-session-surveyor" placeholder="Schouwer" value="CHS" />
-        <button id="btn-create-session-modal" type="button">Start sessie</button>
-      </div>
+       <div class="modal-body">
+         <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Klant</label>
+         <input id="modal-session-client-id" placeholder="Klantnaam" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); margin-bottom: 8px;" />
+         <input id="modal-session-name" placeholder="Sessienaam" value="UNV test" />
+         <input id="modal-session-location" placeholder="Locatie" />
+         <input id="modal-session-surveyor" placeholder="Schouwer" value="CHS" />
+         <button id="btn-create-session-modal" type="button">Start sessie</button>
+       </div>
     </section>
   </div>
 
@@ -258,6 +308,8 @@
           <select id="note-cable-type" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text);"></select>
           <label style="font-weight: 600; font-size: 0.82rem;">Lengte (meters)</label>
           <input id="note-cable-length" type="number" min="0" value="0" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text);" />
+          <label style="font-weight: 600; font-size: 0.82rem;">Aangesloten op</label>
+          <select id="note-connected-to" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text);"></select>
         </div>
         <textarea id="photo-note" rows="5" placeholder="Typ hier de opmerking"></textarea>
         <button id="btn-save-note" type="button">Opmerking opslaan</button>
@@ -290,6 +342,8 @@
           <select id="wf-cable-type" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text);"></select>
           <label style="font-weight: 600; font-size: 0.82rem;">Lengte (meters)</label>
           <input id="wf-cable-length" type="number" min="0" value="0" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text);" />
+          <label style="font-weight: 600; font-size: 0.82rem;">Aangesloten op</label>
+          <select id="wf-connected-to" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text);"></select>
         </div>
         <button id="btn-workflow-continue" type="button">Verder gaan</button>
         <div class="workflow-retake-actions">
@@ -371,8 +425,9 @@
       <div class="modal-body" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 20px;">
         <!-- Tabs -->
         <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--line); padding-bottom: 8px;">
-          <button id="tab-btn-quote" class="seg active" style="flex: 1; font-weight: 600;" type="button">Offerte</button>
-          <button id="tab-btn-rates" class="seg" style="flex: 1; font-weight: 600;" type="button">Tarieven beheer</button>
+          <button id="tab-btn-quote" class="seg active" style="flex: 1; font-weight: 600;" type="button">Kabels</button>
+          <button id="tab-btn-excel" class="seg" style="flex: 1; font-weight: 600;" type="button">Excel Export</button>
+          <button id="tab-btn-rates" class="seg" style="display: none;" type="button">Tarieven beheer</button>
         </div>
         <!-- Tab 1: Offerte -->
         <div id="tab-content-quote" style="display: flex; flex-direction: column; gap: 15px;">
@@ -387,24 +442,43 @@
                   <th style="padding: 8px 4px;">Camera</th>
                   <th style="padding: 8px 4px;">Montage</th>
                   <th style="padding: 8px 4px; text-align: right;">Meters</th>
-                  <th style="padding: 8px 4px; text-align: right;">M. prijs</th>
-                  <th style="padding: 8px 4px; text-align: right;">Subtotaal</th>
                 </tr>
               </thead>
               <tbody id="quote-table-body">
                 <!-- Wordt dynamisch gevuld -->
               </tbody>
-              <tfoot>
-                <tr style="border-top: 2px solid var(--line); font-weight: 700;">
-                  <td colspan="4" style="padding: 12px 4px;">Totaal (excl. BTW)</td>
-                  <td id="quote-total-price" style="padding: 12px 4px; text-align: right;">€ 0,00</td>
-                </tr>
-              </tfoot>
             </table>
           </div>
           <div style="display: flex; gap: 8px; margin-top: 10px;">
             <button id="btn-print-quote" type="button" style="flex: 1;">Print / Download PDF</button>
           </div>
+        </div>
+        <!-- Tab 3: Excel Export -->
+        <div id="tab-content-excel" style="display: none; flex-direction: column; gap: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+            <p class="muted" style="margin: 0; font-size: 0.82rem;">Materialenstaat gebaseerd op de offerte-configuratie.</p>
+            <button id="btn-open-configure" class="secondary" type="button" style="min-height: 36px; padding: 0 10px; font-size: 0.8rem; font-weight: 600;">⚙ Wijzig</button>
+          </div>
+          <div style="overflow-x: auto;">
+            <table class="quote-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">
+              <thead>
+                <tr style="border-bottom: 2px solid var(--line); color: var(--muted);">
+                  <th style="padding: 8px 4px;">Code</th>
+                  <th style="padding: 8px 4px;">Omschrijving</th>
+                  <th style="padding: 8px 4px; text-align: right;">Aantal</th>
+                  <th style="padding: 8px 4px;">Eenheid</th>
+                </tr>
+              </thead>
+              <tbody id="excel-table-body">
+                <!-- Wordt dynamisch gevuld -->
+              </tbody>
+            </table>
+          </div>
+          <div style="display: flex; gap: 10px; margin-top: 5px;">
+            <button id="btn-download-excel-csv" type="button" style="flex: 1;">📥 Download Excel (CSV)</button>
+            <button id="btn-trigger-import-csv" class="secondary" type="button" style="flex: 1;">📤 Importeer Excel (CSV)</button>
+          </div>
+          <input id="csv-file-input" type="file" accept=".csv" style="display: none;" />
         </div>
         <!-- Tab 2: Tarieven beheer -->
         <div id="tab-content-rates" style="display: none; flex-direction: column; gap: 15px;">
@@ -452,6 +526,123 @@
             <p class="muted" style="text-align: center; margin-top: 50px;">Selecteer een klant om tarieven te beheren.</p>
           </div>
         </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="configure-quote-modal" class="modal-backdrop">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="configure-quote-title" style="max-width: 500px; width: calc(100% - 28px); max-height: calc(100vh - 28px); display: flex; flex-direction: column; overflow: hidden;">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Configuratie</p>
+          <h2 id="configure-quote-title">Offerte configureren</h2>
+        </div>
+        <button id="btn-close-configure-modal" class="secondary" type="button">Sluit</button>
+      </div>
+      <div class="modal-body" style="overflow-y: auto; flex: 1; padding-right: 4px; display: flex; flex-direction: column; gap: 15px;">
+        
+        <!-- Vraag: Nieuwe installatie? -->
+        <div class="form-group">
+          <label style="display: block; margin-bottom: 6px;">Nieuwe installatie?</label>
+          <div style="display: flex; gap: 15px;">
+            <label style="text-transform: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; font-weight: normal; color: var(--text);">
+              <input type="radio" name="cfg-new-install" value="ja" checked style="width: auto; min-height: auto;" /> Ja
+            </label>
+            <label style="text-transform: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; font-weight: normal; color: var(--text);">
+              <input type="radio" name="cfg-new-install" value="nee" style="width: auto; min-height: auto;" /> Nee
+            </label>
+          </div>
+        </div>
+
+        <!-- Aantal camera's -->
+        <div style="border-top: 1px solid var(--line); padding-top: 10px;">
+          <label style="display: block; margin-bottom: 6px;">Camera's indelen</label>
+          <p class="muted" style="margin: 0 0 8px 0; font-size: 0.8rem;">
+            Totaal aantal camera's in schouw: <strong id="cfg-total-cams">0</strong>
+          </p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label for="cfg-std-cams">Standaard (6082)</label>
+              <input id="cfg-std-cams" type="number" min="0" value="0" style="margin-top: 4px;" />
+            </div>
+            <div>
+              <label for="cfg-lift-cams">Lift (6011)</label>
+              <input id="cfg-lift-cams" type="number" min="0" value="0" style="margin-top: 4px;" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Details bij liftcamera -->
+        <div id="cfg-lift-details-container" style="display: none; border-left: 3px solid var(--accent); padding-left: 10px; margin-top: 5px; flex-direction: column; gap: 10px;">
+          <!-- Dynamisch gevuld via Javascript -->
+        </div>
+
+        <!-- Muurbeugel en IP over Coax -->
+        <div style="border-top: 1px solid var(--line); padding-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div>
+            <label for="cfg-wall-brackets">Muurbeugels (Aantal)</label>
+            <input id="cfg-wall-brackets" type="number" min="0" value="0" style="margin-top: 4px;" />
+          </div>
+          <div>
+            <label for="cfg-coax-converters">IP over Coax-converters (Aantal)</label>
+            <input id="cfg-coax-converters" type="number" min="0" value="0" style="margin-top: 4px;" />
+          </div>
+        </div>
+
+        <!-- Server -->
+        <div style="border-top: 1px solid var(--line); padding-top: 10px;">
+          <label for="cfg-server-channels">Server kanaalkeuze</label>
+          <select id="cfg-server-channels" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); margin-top: 4px;">
+            <option value="geen">Geen server</option>
+            <option value="4">4-kanaals server</option>
+            <option value="8">8-kanaals server</option>
+            <option value="16">16-kanaals server</option>
+            <option value="32">32-kanaals server</option>
+          </select>
+        </div>
+
+        <!-- Subswitch -->
+        <div style="border-top: 1px solid var(--line); padding-top: 10px;">
+          <label style="display: block; margin-bottom: 6px;">Subswitch noodzakelijk?</label>
+          <div style="display: flex; gap: 15px; margin-bottom: 8px;">
+            <label style="text-transform: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; font-weight: normal; color: var(--text);">
+              <input type="radio" name="cfg-subswitch-needed" value="ja" style="width: auto; min-height: auto;" /> Ja
+            </label>
+            <label style="text-transform: none; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; font-weight: normal; color: var(--text);">
+              <input type="radio" name="cfg-subswitch-needed" value="nee" checked style="width: auto; min-height: auto;" /> Nee
+            </label>
+          </div>
+          
+          <div id="cfg-subswitch-details-container" style="display: none; flex-direction: column; gap: 10px; border-left: 3px solid var(--accent); padding-left: 10px;">
+            <div>
+              <label for="cfg-subswitch-qty">Aantal subswitches</label>
+              <input id="cfg-subswitch-qty" type="number" min="1" value="1" style="margin-top: 4px;" />
+            </div>
+            <div id="cfg-switches-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 5px;">
+              <!-- Dynamisch gevuld via Javascript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Type kast -->
+        <div style="border-top: 1px solid var(--line); padding-top: 10px;">
+          <label for="cfg-cabinet-type">Type kast noodzakelijk</label>
+          <select id="cfg-cabinet-type" style="width: 100%; height: 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 8px; color: var(--text); margin-top: 4px;">
+            <option value="geen">Geen kast</option>
+            <option value="groot">Groot 600mm diep</option>
+            <option value="middel">Middel 450mm diep</option>
+            <option value="brievenbus">Brievenbuskast</option>
+          </select>
+        </div>
+        <!-- Camera-aansluitingen -->
+        <div id="cfg-cam-connections-section" style="border-top: 1px solid var(--line); padding-top: 10px; display: none; flex-direction: column; gap: 8px;">
+          <label style="display: block; margin-bottom: 4px;">Camera's koppelen</label>
+          <div id="cfg-cam-connections-list" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: 4px; padding: 8px; background: rgba(255,255,255,0.02);">
+            <!-- Dynamisch gevuld via Javascript -->
+          </div>
+        </div>
+
+        <button id="btn-save-configure" type="button" class="wide" style="margin-top: 10px;">Configuratie opslaan</button>
       </div>
     </section>
   </div>

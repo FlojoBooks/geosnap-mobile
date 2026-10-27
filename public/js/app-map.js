@@ -14,6 +14,23 @@ function initMap() {
 
 function centerMapOnGps(lat, lng, accuracy) {
   if (!window.L) return;
+
+  if (state.startupMap) {
+    state.startupMap.setView([lat, lng], 17);
+    if (state.startupGpsMarker) {
+      state.startupGpsMarker.setLatLng([lat, lng]);
+      state.startupGpsMarker.setRadius(Math.max(10, Number(accuracy || 0)));
+    } else {
+      state.startupGpsMarker = L.circle([lat, lng], {
+        radius: Math.max(10, Number(accuracy || 0)),
+        color: '#10b981',
+        weight: 1,
+        fillColor: '#10b981',
+        fillOpacity: .12
+      }).addTo(state.startupMap);
+    }
+  }
+
   initMap();
   if (!state.map) return;
   state.gpsItems.forEach(item => item.remove());
@@ -56,10 +73,60 @@ function renderMap() {
   state.mapItems.forEach(item => item.remove());
   state.mapItems = [];
 
-  const cameraPhotos = state.photos.filter(photo => photo.type === 'beeld' && photo.latitude != null && photo.longitude != null);
-  const parkingPhotos = state.photos.filter(photo => photo.special_kind === 'parking' && photo.latitude != null && photo.longitude != null);
-  const centralPhotos = state.photos.filter(photo => photo.special_kind === 'central' && photo.latitude != null && photo.longitude != null);
-  if (!cameraPhotos.length && !parkingPhotos.length && !centralPhotos.length) {
+  const uniqueFloors = Array.from(
+    new Set(
+      state.photos
+        .filter(photo => photo.floor)
+        .map(photo => photo.floor)
+    )
+  ).sort();
+  
+  const floorSelect = $('map-floor-select');
+  if (floorSelect) {
+    const currentVal = state.mapFloorFilter || 'all';
+    let html = '<option value="all">Alle verdiepingen</option>';
+    uniqueFloors.forEach(f => {
+      html += `<option value="${f}">${f}</option>`;
+    });
+    floorSelect.innerHTML = html;
+    floorSelect.value = currentVal;
+    if (floorSelect.value !== currentVal) {
+      floorSelect.value = 'all';
+      state.mapFloorFilter = 'all';
+    }
+  }
+
+  const activeFloor = state.mapFloorFilter || 'all';
+
+  const cameraPhotos = state.photos.filter(photo => 
+    photo.type === 'beeld' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (activeFloor === 'all' || photo.floor === activeFloor)
+  );
+  
+  const parkingPhotos = state.photos.filter(photo => 
+    photo.special_kind === 'parking' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (activeFloor === 'all' || photo.floor === activeFloor || (!photo.floor && activeFloor === 'BG'))
+  );
+  
+  const centralPhotos = state.photos.filter(photo => 
+    photo.special_kind === 'central' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (activeFloor === 'all' || photo.floor === activeFloor || (!photo.floor && activeFloor === 'BG'))
+  );
+
+  const switchPhotos = state.photos.filter(photo => 
+    photo.special_kind && photo.special_kind.startsWith('switch_') && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (activeFloor === 'all' || photo.floor === activeFloor || (!photo.floor && activeFloor === 'BG'))
+  );
+
+  if (!cameraPhotos.length && !parkingPhotos.length && !centralPhotos.length && !switchPhotos.length) {
     if (state.gps.latitude != null) {
       centerMapOnGps(state.gps.latitude, state.gps.longitude, state.gps.accuracy);
     } else {
@@ -72,13 +139,14 @@ function renderMap() {
   const pending = state.pendingConePhotoId ? state.photos.find(photo => photo.id === state.pendingConePhotoId) : null;
   const pendingParking = state.pendingParkingPhotoId ? state.photos.find(photo => photo.id === state.pendingParkingPhotoId) : null;
   const pendingCentral = state.pendingCentralPhotoId ? state.photos.find(photo => photo.id === state.pendingCentralPhotoId) : null;
+  const pendingLabel = pendingCentral ? (pendingCentral.special_kind === 'central' ? '230V' : `SW${pendingCentral.special_kind.split('_')[1]}`) : '';
   $('map-status').textContent = pendingCentral
-    ? 'Sleep het 230V icoon naar de centrale apparatuur.'
+    ? `Sleep het ${pendingLabel} icoon naar de juiste locatie.`
     : pendingParking
     ? 'Sleep de blauwe P naar de parkeermogelijkheid.'
     : pending
     ? `${cameraPhotos.length} camera's op kaart. Alleen CAM-${padCam(pending.camera_number)} is nu bewerkbaar.`
-    : `${cameraPhotos.length} camera's, ${parkingPhotos.length} parkeerpunt(en) en ${centralPhotos.length} centrale apparatuur op kaart. Sleep markers om posities te corrigeren.`;
+    : `${cameraPhotos.length} camera's, ${parkingPhotos.length} parkeerpunt(en), ${centralPhotos.length} centrale en ${switchPhotos.length} switch(es) op kaart. Sleep markers om posities te corrigeren.`;
 
   const bounds = [];
   cameraPhotos.forEach(photo => {
@@ -90,6 +158,10 @@ function renderMap() {
     bounds.push([photo.latitude, photo.longitude]);
   });
   centralPhotos.forEach(photo => {
+    addSpecialMarkerToMap(photo);
+    bounds.push([photo.latitude, photo.longitude]);
+  });
+  switchPhotos.forEach(photo => {
     addSpecialMarkerToMap(photo);
     bounds.push([photo.latitude, photo.longitude]);
   });
@@ -142,13 +214,16 @@ function addCameraToMap(photo) {
 function addSpecialMarkerToMap(photo) {
   const pending = state.pendingParkingPhotoId === photo.id || state.pendingCentralPhotoId === photo.id;
   const isCentral = photo.special_kind === 'central';
+  const isSwitch = photo.special_kind && photo.special_kind.startsWith('switch_');
+  const label = isCentral ? '230V' : isSwitch ? `SW${photo.special_kind.split('_')[1]}` : 'P';
+  const markerClass = (isCentral || isSwitch) ? 'central-marker' : 'parking-marker';
   const marker = L.marker([photo.latitude, photo.longitude], {
     draggable: true,
     icon: L.divIcon({
-      html: `<div class="${isCentral ? 'central-marker' : 'parking-marker'}">${isCentral ? '230V' : 'P'}</div>`,
+      html: `<div class="${markerClass}">${label}</div>`,
       className: '',
-      iconSize: isCentral ? [48, 34] : [34, 34],
-      iconAnchor: isCentral ? [24, 17] : [17, 17]
+      iconSize: (isCentral || isSwitch) ? [48, 34] : [34, 34],
+      iconAnchor: (isCentral || isSwitch) ? [24, 17] : [17, 17]
     })
   }).addTo(state.map);
   state.mapItems.push(marker);
@@ -161,9 +236,9 @@ function addSpecialMarkerToMap(photo) {
     showToast(`${specialKindLabel(photo.special_kind)} positie opgeslagen`);
   });
   marker.on('click', () => {
-    if (isCentral) {
+    if (isCentral || isSwitch) {
       state.pendingCentralPhotoId = photo.id;
-      $('map-status').textContent = 'Sleep het 230V icoon naar de centrale apparatuur.';
+      $('map-status').textContent = `Sleep het ${label} icoon naar de juiste locatie.`;
     } else {
       state.pendingParkingPhotoId = photo.id;
       $('map-status').textContent = 'Sleep de blauwe P naar de parkeermogelijkheid.';
@@ -182,11 +257,13 @@ async function startSpecialMarkerPlacement(photoId) {
     const longitude = state.gps.longitude != null ? state.gps.longitude : center?.lng;
     if (latitude != null && longitude != null) await updatePhoto(photo.id, { latitude, longitude });
   }
-  if (photo.special_kind === 'central') state.pendingCentralPhotoId = photo.id;
+  const isCentralOrSwitch = photo.special_kind === 'central' || (photo.special_kind && photo.special_kind.startsWith('switch_'));
+  const label = photo.special_kind === 'central' ? '230V' : (photo.special_kind && photo.special_kind.startsWith('switch_') ? `SW${photo.special_kind.split('_')[1]}` : 'P');
+  if (isCentralOrSwitch) state.pendingCentralPhotoId = photo.id;
   else state.pendingParkingPhotoId = photo.id;
   renderMap();
   document.querySelector('.map-band')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  showToast(photo.special_kind === 'central' ? 'Sleep het 230V icoon naar centrale apparatuur' : 'Sleep de blauwe P naar de juiste parkeerplek');
+  showToast(isCentralOrSwitch ? `Sleep het ${label} icoon naar de juiste locatie` : 'Sleep de blauwe P naar de juiste parkeerplek');
 }
 
 function selectMapPhoto(photoId, redraw = false) {
@@ -387,6 +464,131 @@ async function downloadVisibleTiles() {
   } catch (err) {
     btn.disabled = false;
     btn.textContent = `📥 Download Kaartregio`;
+    showToast(`Fout bij downloaden: ${err.message}`);
+  }
+}
+
+function openStartupMapModal() {
+  $('startup-map-modal').classList.add('open');
+  initStartupPreviewMap();
+}
+
+function closeStartupMapModal() {
+  $('startup-map-modal').classList.remove('open');
+}
+
+function initStartupPreviewMap() {
+  if (state.startupMap || !window.L) return;
+  const center = state.gps.latitude != null ? [state.gps.latitude, state.gps.longitude] : [52.08, 4.7];
+  state.startupMap = L.map('startup-map-preview', {
+    center,
+    zoom: 17,
+    zoomControl: true,
+    attributionControl: false
+  });
+  
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 20
+  }).addTo(state.startupMap);
+  
+  if (state.gps.latitude != null) {
+    state.startupGpsMarker = L.circle(center, {
+      radius: Math.max(10, Number(state.gps.accuracy || 20)),
+      color: '#10b981',
+      weight: 1,
+      fillColor: '#10b981',
+      fillOpacity: .12
+    }).addTo(state.startupMap);
+  }
+  
+  setTimeout(() => state.startupMap.invalidateSize(), 150);
+}
+
+async function downloadStartupMapTiles() {
+  if (!state.startupMap || !window.L) return showToast('Kaart is nog niet geladen');
+  if (!navigator.onLine) return showToast('Internetverbinding is vereist om kaarten te downloaden');
+  
+  const btn = document.getElementById('btn-download-startup-map');
+  if (!btn) return;
+  
+  try {
+    const bounds = state.startupMap.getBounds();
+    const northEast = bounds.getNorthEast();
+    const southWest = bounds.getSouthWest();
+    
+    const tileTasks = [];
+    const TILE_SIZE = 256;
+    
+    function lonLatToWorldPixelLocal(lng, lat, zoom) {
+      const sinLat = Math.sin(Number(lat) * Math.PI / 180);
+      const scale = TILE_SIZE * Math.pow(2, zoom);
+      return {
+        x: (Number(lng) + 180) / 360 * scale,
+        y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale
+      };
+    }
+    
+    for (let z = 17; z <= 19; z++) {
+      const swPx = lonLatToWorldPixelLocal(southWest.lng, southWest.lat, z);
+      const nePx = lonLatToWorldPixelLocal(northEast.lng, northEast.lat, z);
+      
+      const minX = Math.min(Math.floor(swPx.x / TILE_SIZE), Math.floor(nePx.x / TILE_SIZE));
+      const maxX = Math.max(Math.floor(swPx.x / TILE_SIZE), Math.floor(nePx.x / TILE_SIZE));
+      const minY = Math.min(Math.floor(swPx.y / TILE_SIZE), Math.floor(nePx.y / TILE_SIZE));
+      const maxY = Math.max(Math.floor(swPx.y / TILE_SIZE), Math.floor(nePx.y / TILE_SIZE));
+      
+      for (let x = minX; x <= maxX; x++) {
+        for (let y = minY; y <= maxY; y++) {
+          tileTasks.push({ z, x, y });
+        }
+      }
+    }
+    
+    const total = tileTasks.length;
+    if (total === 0) return showToast('Geen kaarttegels gevonden in deze weergave');
+    if (total > 250) {
+      if (!confirm(`Je staat op het punt om ${total} kaarttegels te downloaden. Dit kan even duren. Wil je doorgaan?`)) {
+        return;
+      }
+    }
+    
+    btn.disabled = true;
+    btn.textContent = `⏳ 0% (0/${total})`;
+    
+    let completed = 0;
+    const batchSize = 4;
+    for (let i = 0; i < total; i += batchSize) {
+      const batch = tileTasks.slice(i, i + batchSize);
+      await Promise.all(batch.map(async (tile) => {
+        try {
+          if (typeof getTileBlob === 'function') {
+            await getTileBlob(tile.z, tile.x, tile.y);
+          } else {
+            const url = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${tile.z}/${tile.y}/${tile.x}`;
+            await fetch(url, { cache: 'force-cache' });
+          }
+        } catch (e) {
+          console.error('Tile fetch failed', e);
+        }
+      }));
+      completed += batch.length;
+      const pct = Math.round((completed / total) * 100);
+      btn.textContent = `⏳ ${pct}% (${completed}/${total})`;
+    }
+    
+    btn.textContent = `✅ Kaart Gedownload`;
+    showToast(`${total} Kaarttegels succesvol offline opgeslagen!`);
+    
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = `📥 Kaart downloaden`;
+      closeStartupMapModal();
+      openCameraModal();
+    }, 1500);
+    
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = `📥 Kaart downloaden`;
     showToast(`Fout bij downloaden: ${err.message}`);
   }
 }

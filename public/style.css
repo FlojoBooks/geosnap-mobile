@@ -469,7 +469,20 @@ pre {
 }
 .cone-field {
   display: grid;
-  gap: 5px;
+  gap: 6px;
+}
+.cone-field label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.cone-field label span {
+  text-transform: none;
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.82rem;
+  letter-spacing: 0;
 }
 .map-controls.pending-cone {
   border-color: rgba(195, 32, 50, .7);
@@ -620,7 +633,7 @@ pre {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 3000;
   display: none;
   align-items: center;
   justify-content: center;
@@ -934,9 +947,10 @@ pre {
   }
   .cone-meta {
     grid-column: 1 / 3;
-    grid-template-columns: auto minmax(0, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
+    gap: 4px 8px;
   }
   #selected-camera {
     margin: 0;
@@ -957,6 +971,7 @@ pre {
     gap: 7px;
   }
   .cone-field label {
+    display: block;
     font-size: .68rem;
     letter-spacing: .02em;
   }
@@ -1238,6 +1253,9 @@ pre {
 }
 .slider-container input[type="range"] {
   flex: 1;
+  min-height: unset;
+  height: 36px;
+  cursor: pointer;
 }
 .btn-step {
   display: flex;
@@ -1260,4 +1278,36 @@ pre {
 .btn-step:active {
   background: var(--bg);
 }
+
+#startup-map-preview {
+  height: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: #111827;
+  width: 100%;
+}
+
+@media (max-width: 560px) {
+  /* Make clients-modal split pane stack on mobile */
+  #clients-modal .modal-body > div {
+    grid-template-columns: 1fr !important;
+  }
+  #clients-modal .modal-body > div > div:first-child {
+    border-right: none !important;
+    padding-right: 0 !important;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 15px;
+  }
+}
+
+#configure-quote-modal select {
+  font-size: 15px;
+}
+#configure-quote-modal input[type="radio"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 

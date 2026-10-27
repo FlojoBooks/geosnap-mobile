@@ -195,24 +195,35 @@ function populateSessionClientSelects() {
   const sessionSelect = $('session-client-id');
   const modalSelect = $('modal-session-client-id');
   
-  if (!sessionSelect && !modalSelect) return;
-  
-  const clients = getClients();
-  let optionsHtml = '<option value="">-- Geen klant (Standaard tarieven) --</option>';
-  optionsHtml += clients.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-  
   if (sessionSelect) {
-    sessionSelect.innerHTML = optionsHtml;
-    // Set selected client if state has active session
-    if (state.session && state.session.client_id) {
-      sessionSelect.value = state.session.client_id;
+    if (sessionSelect.tagName === 'INPUT') {
+      if (state.session && state.session.client_id) {
+        sessionSelect.value = state.session.client_id;
+      }
+    } else {
+      const clients = getClients();
+      let optionsHtml = '<option value="">-- Geen klant (Standaard tarieven) --</option>';
+      optionsHtml += clients.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      sessionSelect.innerHTML = optionsHtml;
+      if (state.session && state.session.client_id) {
+        sessionSelect.value = state.session.client_id;
+      }
     }
   }
   
   if (modalSelect) {
-    modalSelect.innerHTML = optionsHtml;
-    if (state.session && state.session.client_id) {
-      modalSelect.value = state.session.client_id;
+    if (modalSelect.tagName === 'INPUT') {
+      if (state.session && state.session.client_id) {
+        modalSelect.value = state.session.client_id;
+      }
+    } else {
+      const clients = getClients();
+      let optionsHtml = '<option value="">-- Geen klant (Standaard tarieven) --</option>';
+      optionsHtml += clients.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      modalSelect.innerHTML = optionsHtml;
+      if (state.session && state.session.client_id) {
+        modalSelect.value = state.session.client_id;
+      }
     }
   }
 }

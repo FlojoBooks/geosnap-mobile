@@ -47,7 +47,8 @@ async function exportSession(options = {}) {
     const cameraPhotos = photos.filter(photo => photo.type === 'beeld' && photo.latitude != null && photo.longitude != null);
     const parkingPhotos = photos.filter(photo => photo.special_kind === 'parking' && photo.latitude != null && photo.longitude != null);
     const centralPhotos = photos.filter(photo => photo.special_kind === 'central' && photo.latitude != null && photo.longitude != null);
-    const center = getMapExportCenter([...cameraPhotos, ...parkingPhotos, ...centralPhotos]);
+    const switchPhotos = photos.filter(photo => photo.special_kind && photo.special_kind.startsWith('switch_') && photo.latitude != null && photo.longitude != null);
+    const center = getMapExportCenter([...cameraPhotos, ...parkingPhotos, ...centralPhotos, ...switchPhotos]);
     const centerPx = lonLatToWorldPixel(center.lng, center.lat, TILE_ZOOM);
     const origin = { x: centerPx.x - 1397 / 2, y: centerPx.y - 1000 / 2 };
 
@@ -56,26 +57,71 @@ async function exportSession(options = {}) {
     const fileBase = sanitizeFileName(session.name || 'geosnap-export');
     const fileName = `${fileBase}-${formatExportStamp(new Date())}.zip`;
 
+    const maps = await buildExportMapPngs(session, cleanPhotos, {
+      markerSize: Number(options.markerSize || state.exportMarkerSize || 18)
+    });
+
+    zip.file('kaart/kaart_met_cones.png', maps.withCones, { base64: true });
+    zip.file('kaart/kaart_zonder_cones.png', maps.sessionOnly, { base64: true });
+
+    const floorPhotosManifest = {};
+    for (const [floor, floorMap] of Object.entries(maps.floors)) {
+      const metConesPath = `kaart/kaart_${floor}_met_cones.png`;
+      const zonderConesPath = `kaart/kaart_${floor}_zonder_cones.png`;
+      zip.file(metConesPath, floorMap.withCones, { base64: true });
+      zip.file(zonderConesPath, floorMap.sessionOnly, { base64: true });
+      floorPhotosManifest[floor] = {
+        with_cones: metConesPath,
+        without_cones: zonderConesPath
+      };
+    }
+
     zip.file('manifest.json', JSON.stringify({
       export_version: 1,
       export_date: new Date().toISOString(),
       app: 'Alphatron GeoSnap Mobile',
       session: cleanSession,
-      photos: cleanPhotos
+      photos: cleanPhotos,
+      map_photos: {
+        with_cones: 'kaart/kaart_met_cones.png',
+        without_cones: 'kaart/kaart_zonder_cones.png',
+        floors: floorPhotosManifest
+      }
     }, null, 2));
+
     zip.file('photos.csv', buildPhotosCsv(cleanPhotos));
     zip.file('opmerkingen.txt', buildNotesText(session, cleanPhotos));
     zip.file('kaart/camera_cones.geojson', JSON.stringify(buildCameraGeoJson(cleanPhotos), null, 2));
-    const maps = await buildExportMapPngs(session, cleanPhotos, {
-      markerSize: Number(options.markerSize || state.exportMarkerSize || 18)
-    });
-    zip.file('kaart/kaart_met_cones.png', maps.withCones, { base64: true });
-    zip.file('kaart/kaart_zonder_cones.png', maps.sessionOnly, { base64: true });
 
     for (const photo of photos) {
       if (!photo.blob) continue;
       const name = photoExportName(photo);
       zip.file(`fotos/${name}`, await photo.blob.arrayBuffer());
+    }
+
+    // Genereer de locatiekaart-afbeeldingen voor elke camera
+    showToast('Locatiekaarten genereren...');
+    const uniqueCameras = [];
+    const seenCams = new Set();
+    for (const p of cameraPhotos) {
+      if (p.camera_number && !seenCams.has(p.camera_number)) {
+        seenCams.add(p.camera_number);
+        uniqueCameras.push(p);
+      }
+    }
+
+    for (const camPhoto of uniqueCameras) {
+      try {
+        const cropPngBase64 = await renderCameraLocationMapPng(session, photos, camPhoto, {
+          width: 300,
+          height: 300,
+          zoom: TILE_ZOOM,
+          markerSize: Number(options.markerSize || state.exportMarkerSize || 18)
+        });
+        zip.file(`locatie_kaarten/camera_${camPhoto.camera_number}.png`, cropPngBase64, { base64: true });
+      } catch (err) {
+        console.error('Fout bij genereren locatiekaart voor camera ' + camPhoto.camera_number, err);
+      }
     }
 
     const base64 = await zip.generateAsync({ type: 'base64', compression: 'DEFLATE' });
@@ -111,6 +157,18 @@ function withReferenceNumbers(photos) {
 
 function stripSessionForExport(session) {
   const { photos, ...clean } = session;
+  if (clean.client_id && typeof getClients === 'function') {
+    const clients = getClients();
+    const client = clients.find(c => c.id === clean.client_id);
+    if (client) {
+      clean.client_name = client.name;
+    }
+  }
+  if (clean.quote_config) {
+    if (clean.quote_config.subswitch_needed === 'nee') {
+      clean.quote_config.subswitch_qty = 0;
+    }
+  }
   return clean;
 }
 
@@ -150,6 +208,10 @@ function stripPhotoForExport(photo, origin) {
 }
 
 function photoExportName(photo) {
+  if (photo.special_kind && photo.special_kind.startsWith('switch_')) {
+    const swIdx = photo.special_kind.split('_')[1];
+    return `SWITCH-${swIdx}-${padCam(photo.reference_number || 1)}.jpg`;
+  }
   if (photo.special_kind === 'central') {
     return `CENTRALE-APPARATUUR-${padCam(photo.reference_number || 1)}.jpg`;
   }
@@ -214,7 +276,8 @@ function buildPhotosCsv(photos) {
     'App_Y',
     'App_Rotation',
     'App_FOV',
-    'App_Length'
+    'App_Length',
+    'connected_to'
   ];
   const rows = photos.map(photo => headers.map(key => csvCell(photo[key])).join(','));
   return `${headers.join(',')}\n${rows.join('\n')}\n`;
@@ -291,9 +354,25 @@ function buildCameraGeoJson(photos) {
 }
 
 async function buildExportMapPngs(session, photos, options = {}) {
+  const floors = Array.from(
+    new Set(
+      photos.filter(p => p.floor).map(p => p.floor)
+    )
+  ).sort();
+  if (floors.length === 0) floors.push('BG');
+  
   const withCones = await renderMapPng(session, photos, { cones: true, markerSize: options.markerSize });
   const sessionOnly = await renderMapPng(session, photos, { cones: false });
-  return { withCones, sessionOnly };
+  
+  const floorMaps = {};
+  for (const floor of floors) {
+    floorMaps[floor] = {
+      withCones: await renderMapPng(session, photos, { cones: true, markerSize: options.markerSize, floor: floor }),
+      sessionOnly: await renderMapPng(session, photos, { cones: false, floor: floor })
+    };
+  }
+  
+  return { withCones, sessionOnly, floors: floorMaps };
 }
 
 async function renderMapPng(session, photos, options = {}) {
@@ -303,21 +382,49 @@ async function renderMapPng(session, photos, options = {}) {
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  const cameraPhotos = photos.filter(photo => photo.type === 'beeld' && photo.latitude != null && photo.longitude != null);
-  const parkingPhotos = photos.filter(photo => photo.special_kind === 'parking' && photo.latitude != null && photo.longitude != null);
-  const centralPhotos = photos.filter(photo => photo.special_kind === 'central' && photo.latitude != null && photo.longitude != null);
-  const center = getMapExportCenter([...cameraPhotos, ...parkingPhotos, ...centralPhotos]);
+  
+  const floorFilter = options.floor;
+  
+  const cameraPhotos = photos.filter(photo => 
+    photo.type === 'beeld' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (!floorFilter || photo.floor === floorFilter)
+  );
+  
+  const parkingPhotos = photos.filter(photo => 
+    photo.special_kind === 'parking' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (!floorFilter || photo.floor === floorFilter || (!photo.floor && floorFilter === 'BG'))
+  );
+  
+  const centralPhotos = photos.filter(photo => 
+    photo.special_kind === 'central' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (!floorFilter || photo.floor === floorFilter || (!photo.floor && floorFilter === 'BG'))
+  );
+
+  const switchPhotos = photos.filter(photo => 
+    photo.special_kind && photo.special_kind.startsWith('switch_') && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (!floorFilter || photo.floor === floorFilter || (!photo.floor && floorFilter === 'BG'))
+  );
+  
+  const center = getMapExportCenter([...cameraPhotos, ...parkingPhotos, ...centralPhotos, ...switchPhotos]);
   const centerPx = lonLatToWorldPixel(center.lng, center.lat, TILE_ZOOM);
   const origin = { x: centerPx.x - width / 2, y: centerPx.y - height / 2 };
 
   ctx.fillStyle = '#111827';
   ctx.fillRect(0, 0, width, height);
   await drawSatelliteTiles(ctx, origin, width, height, TILE_ZOOM);
-  drawMapTitle(ctx, session, width);
   if (options.cones) {
     drawExportCones(ctx, cameraPhotos, origin, options);
     drawExportParking(ctx, parkingPhotos, origin);
     drawExportCentral(ctx, centralPhotos, origin);
+    drawExportSwitches(ctx, switchPhotos, origin);
   }
   return canvas.toDataURL('image/png').split(',')[1];
 }
@@ -457,6 +564,27 @@ function drawExportCentral(ctx, photos, origin) {
   });
 }
 
+function drawExportSwitches(ctx, photos, origin) {
+  photos.forEach(photo => {
+    const marker = latLngToCanvas(photo.latitude, photo.longitude, origin, TILE_ZOOM);
+    ctx.save();
+    ctx.fillStyle = '#c32032';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 5;
+    const width = 66;
+    const height = 44;
+    ctx.fillRect(marker.x - width / 2, marker.y - height / 2, width, height);
+    ctx.strokeRect(marker.x - width / 2, marker.y - height / 2, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 22px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const label = `SW${photo.special_kind.split('_')[1]}`;
+    ctx.fillText(label, marker.x, marker.y + 1);
+    ctx.restore();
+  });
+}
+
 function latLngToCanvas(lat, lng, origin, zoom) {
   const point = lonLatToWorldPixel(Number(lng), Number(lat), zoom);
   return { x: point.x - origin.x, y: point.y - origin.y };
@@ -574,4 +702,57 @@ function base64ToBlob(base64, type) {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return new Blob([bytes], { type });
+}
+
+async function renderCameraLocationMapPng(session, photos, targetPhoto, options = {}) {
+  const width = options.width || 300;
+  const height = options.height || 300;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  
+  const floorFilter = targetPhoto.floor;
+  
+  const cameraPhotos = photos.filter(photo => 
+    photo.type === 'beeld' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (!floorFilter || photo.floor === floorFilter)
+  );
+  
+  const parkingPhotos = photos.filter(photo => 
+    photo.special_kind === 'parking' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (!floorFilter || photo.floor === floorFilter || (!photo.floor && floorFilter === 'BG'))
+  );
+  
+  const centralPhotos = photos.filter(photo => 
+    photo.special_kind === 'central' && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (!floorFilter || photo.floor === floorFilter || (!photo.floor && floorFilter === 'BG'))
+  );
+
+  const switchPhotos = photos.filter(photo => 
+    photo.special_kind && photo.special_kind.startsWith('switch_') && 
+    photo.latitude != null && 
+    photo.longitude != null &&
+    (!floorFilter || photo.floor === floorFilter || (!photo.floor && floorFilter === 'BG'))
+  );
+
+  const targetPx = lonLatToWorldPixel(targetPhoto.longitude, targetPhoto.latitude, TILE_ZOOM);
+  const origin = { x: targetPx.x - width / 2, y: targetPx.y - height / 2 };
+
+  ctx.fillStyle = '#111827';
+  ctx.fillRect(0, 0, width, height);
+  await drawSatelliteTiles(ctx, origin, width, height, TILE_ZOOM);
+  
+  drawExportCones(ctx, cameraPhotos, origin, options);
+  drawExportParking(ctx, parkingPhotos, origin);
+  drawExportCentral(ctx, centralPhotos, origin);
+  drawExportSwitches(ctx, switchPhotos, origin);
+  
+  return canvas.toDataURL('image/png').split(',')[1];
 }

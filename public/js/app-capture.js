@@ -129,7 +129,7 @@ async function uploadPhoto(blob, overrides = {}) {
   const meta = {
     type: state.mode,
     camera_number: $('camera-number').value,
-    floor: $('floor').value || 'BG',
+    floor: $('floor').value || 'Begane grond',
     source: state.mode === 'beeld' ? 'unv' : 'device',
     ...overrides
   };
@@ -155,7 +155,7 @@ async function uploadPhoto(blob, overrides = {}) {
   if (!data.success) throw new Error(data.error || 'Upload mislukt');
   state.photos.push(data.data);
   renderGallery();
-  if (meta.type === 'beeld' || meta.special_kind === 'parking' || meta.special_kind === 'central') renderMap();
+  if (meta.type === 'beeld' || meta.special_kind === 'parking' || meta.special_kind === 'central' || (meta.special_kind && meta.special_kind.startsWith('switch_'))) renderMap();
   updateWorkflowStatus();
   showToast(`${meta.type === 'beeld' ? 'Beeld' : meta.type === 'referentie' ? 'Referentie' : 'Locatie'} vastgelegd`);
   return data.data;
@@ -204,14 +204,18 @@ function startRetakePhoto(photoId) {
   if (!photo) return showToast('Foto niet gevonden');
   if (!state.workflowGate) {
     state.retakeResume = {
-      floor: $('floor').value || 'BG'
+      floor: $('floor').value || 'Begane grond'
     };
   }
   state.retakePhotoId = photo.id;
   state.referenceCaptureActive = false;
   state.specialCaptureKind = '';
   if (photo.type !== 'referentie') $('camera-number').value = Number(photo.camera_number || 1);
-  $('floor').value = photo.floor || 'BG';
+  
+  let f = photo.floor || 'Begane grond';
+  if (f === 'BG') f = 'Begane grond';
+  $('floor').value = f;
+  
   setMode(photo.type === 'beeld' ? 'beeld' : 'locatie');
   scrollToCaptureTop();
   showToast(`${photoDisplayLabel(photo)} opnieuw maken`);
@@ -248,6 +252,10 @@ function startSpecialReferenceCapture(kind) {
 function referenceCaptureBusyText() {
   if (state.specialCaptureKind === 'central') return 'Centrale apparatuur vastleggen...';
   if (state.specialCaptureKind === 'parking') return 'Parkeermogelijkheid vastleggen...';
+  if (state.specialCaptureKind && state.specialCaptureKind.startsWith('switch_')) {
+    const idx = state.specialCaptureKind.split('_')[1];
+    return `Switch ${idx} vastleggen...`;
+  }
   return 'Referentiefoto maken...';
 }
 
@@ -286,12 +294,20 @@ function buildSpecialReferenceText(kind, referenceNumber = getNextReferenceNumbe
 function specialKindLabel(kind) {
   if (kind === 'central') return 'Centrale apparatuur';
   if (kind === 'parking') return 'Parkeermogelijkheid';
+  if (kind && kind.startsWith('switch_')) {
+    const idx = kind.split('_')[1];
+    return `Switch ${idx}`;
+  }
   return 'Referentie';
 }
 
 function specialKindQuestion(kind) {
   if (kind === 'central') return 'Hoe krijgt de NVR/Switch 230V?';
   if (kind === 'parking') return 'Kan je hier goed parkeren? Is er ruimte voor een bus van 2 meter hoog?';
+  if (kind && kind.startsWith('switch_')) {
+    const idx = kind.split('_')[1];
+    return `Hoe krijgt Switch ${idx} 230V?`;
+  }
   return '';
 }
 
@@ -446,11 +462,13 @@ function openWorkflowModal() {
   $('workflow-next-camera').textContent = `CAM-${padCam(gate.nextCam)}`;
   
   if (typeof populateCableSelects === 'function') populateCableSelects();
+  if (typeof populateConnectedToSelect === 'function') populateConnectedToSelect($('wf-connected-to'));
   const completedCamNum = Number(gate.completedCam);
-  const existing = state.photos.find(p => Number(p.camera_number) === completedCamNum && (p.cable_type || p.cable_length));
+  const existing = state.photos.find(p => Number(p.camera_number) === completedCamNum && (p.cable_type || p.cable_length || p.connected_to));
   const types = getCableTypes();
   $('wf-cable-type').value = existing ? (existing.cable_type || types[0] || '') : (types[0] || '');
   $('wf-cable-length').value = existing ? (existing.cable_length || 0) : 0;
+  $('wf-connected-to').value = existing ? (existing.connected_to || 'recorder') : 'recorder';
 
   modal.classList.add('open');
   document.body.classList.add('modal-open');
@@ -472,15 +490,17 @@ async function continueWorkflowToNextCamera() {
   
   const cableType = $('wf-cable-type').value;
   const cableLength = Number($('wf-cable-length').value || 0);
+  const connectedTo = $('wf-connected-to').value;
   const completedCamNum = Number(gate.completedCam);
   
   const photosToUpdate = state.photos.filter(p => Number(p.camera_number) === completedCamNum);
   for (const photo of photosToUpdate) {
     try {
-      const res = await localApi.updatePhoto(photo.id, { cable_type: cableType, cable_length: cableLength });
+      const res = await localApi.updatePhoto(photo.id, { cable_type: cableType, cable_length: cableLength, connected_to: connectedTo });
       if (res.success) {
         photo.cable_type = cableType;
         photo.cable_length = cableLength;
+        photo.connected_to = connectedTo;
       }
     } catch (e) {
       console.error(e);
@@ -516,7 +536,11 @@ function restoreRetakeResumeIfNeeded() {
   if (!resume) return;
   const next = getNextWorkflowStep();
   $('camera-number').value = Number(next.cameraNumber || 1);
-  $('floor').value = resume.floor || 'BG';
+  
+  let f = resume.floor || 'Begane grond';
+  if (f === 'BG') f = 'Begane grond';
+  $('floor').value = f;
+  
   setMode(next.mode || 'beeld');
   state.retakeResume = null;
   updateWorkflowStatus();

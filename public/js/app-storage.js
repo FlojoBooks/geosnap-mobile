@@ -114,6 +114,7 @@ const localApi = {
       special_answer: meta.special_answer || '',
       cable_type: meta.cable_type || '',
       cable_length: meta.cable_length != null ? Number(meta.cable_length) : 0,
+      connected_to: meta.connected_to || 'recorder',
       created_at: now
     };
     session.updated_at = now;
@@ -124,8 +125,8 @@ const localApi = {
   async updatePhoto(photoId, patch) {
     const photo = await localGet('photos', photoId);
     if (!photo) return { success: false, error: 'Foto niet gevonden' };
-    ['latitude', 'longitude', 'accuracy', 'heading', 'fov', 'range', 'floor', 'camera_number', 'reference_number', 'note', 'reference_text', 'source', 'special_kind', 'special_answer', 'cable_type', 'cable_length'].forEach(key => {
-      if (patch[key] !== undefined) photo[key] = ['floor', 'note', 'reference_text', 'source', 'special_kind', 'special_answer', 'cable_type'].includes(key) ? patch[key] : Number(patch[key]);
+    ['latitude', 'longitude', 'accuracy', 'heading', 'fov', 'range', 'floor', 'camera_number', 'reference_number', 'note', 'reference_text', 'source', 'special_kind', 'special_answer', 'cable_type', 'cable_length', 'connected_to'].forEach(key => {
+      if (patch[key] !== undefined) photo[key] = ['floor', 'note', 'reference_text', 'source', 'special_kind', 'special_answer', 'cable_type', 'connected_to'].includes(key) ? patch[key] : Number(patch[key]);
     });
     if (patch.blob !== undefined) photo.blob = patch.blob;
     if (patch.type !== undefined) photo.type = patch.type;
@@ -143,5 +144,15 @@ const localApi = {
     }
     await localDelete('photos', photoId);
     return { success: true };
+  },
+  async updateSession(sessionId, patch) {
+    const session = await localGet('sessions', sessionId);
+    if (!session) return { success: false, error: 'Sessie niet gevonden' };
+    ['name', 'location', 'surveyor', 'client_id', 'quote_config'].forEach(key => {
+      if (patch[key] !== undefined) session[key] = patch[key];
+    });
+    session.updated_at = new Date().toISOString();
+    await localPut('sessions', session);
+    return { success: true, data: session };
   }
 };
